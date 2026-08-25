@@ -425,7 +425,7 @@
               <label for="flankerTime">单题限时（毫秒）</label>
               <input id="flankerTime" type="number" min="100" max="60000" step="50" value="2000" required>
             </div>
-            <div class="hint">作答方式：仅可使用键盘左、右方向键。</div>
+            <div class="hint">作答方式：可使用键盘左、右方向键，或点击屏幕按钮。</div>
           </div>
 
           <div class="field">
@@ -449,7 +449,7 @@
           </article>
           <article class="task-card">
             <div class="task-icon">&gt;&gt;&lt;&gt;&gt;</div>
-            <div><h2>Flanker 轮：只用键盘</h2><p>只看正中央箭头。示例中央箭头向左，因此按键盘左方向键；鼠标不能作答。</p></div>
+            <div><h2>Flanker 轮：键盘或鼠标</h2><p>只看正中央箭头。示例中央箭头向左，因此按键盘左方向键或点击“向左”按钮；两侧箭头方向无需理会。</p></div>
           </article>
         </div>
         <p class="lead" style="margin-top:28px">每题仅记录第一次作答，超出单题毫秒限时记为“超时”。每轮持续到该任务的设定时长结束；进入每一轮前会显示3秒任务与设备提示。</p>
@@ -714,7 +714,7 @@
 
     function runRoundCue(value) {
       const taskName = currentRound.type === 'stroop' ? 'Stroop 颜色字' : 'Flanker 箭头';
-      const device = currentRound.type === 'stroop' ? '请准备好鼠标' : '请准备好键盘左右方向键';
+      const device = currentRound.type === 'stroop' ? '请准备好鼠标' : '请准备好键盘左右方向键或鼠标';
       $('taskLabel').textContent = `第 ${currentRound.roundIndex} / ${blocks.length} 轮`;
       $('promptText').textContent = '下一轮任务';
       $('answers').replaceChildren();
@@ -816,8 +816,16 @@
       $('stimulus').className = 'stimulus flanker-arrows';
       $('stimulus').style.color = '';
       $('stimulus').textContent = trial.arrows;
-      $('helpLine').textContent = '仅可使用键盘：← 左　→ 右';
-      $('answers').replaceChildren();
+      $('helpLine').textContent = '键盘：← 左　→ 右；也可点击屏幕按钮';
+      const left = document.createElement('button');
+      left.className = 'answer-btn direction';
+      left.textContent = '← 向左';
+      left.addEventListener('click', () => submitResponse('左', 'MouseClick'));
+      const right = document.createElement('button');
+      right.className = 'answer-btn direction';
+      right.textContent = '向右 →';
+      right.addEventListener('click', () => submitResponse('右', 'MouseClick'));
+      $('answers').replaceChildren(left, right);
     }
 
     function updateTimer() {
