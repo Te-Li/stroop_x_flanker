@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stroop × Flanker 混合测试｜认知实验平台</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --ink: #18212f;
+      --muted: #667085;
+      --line: #d8e0ea;
+      --brand: #3157d5;
+      --brand-dark: #2445b4;
+      --soft: #f5f7fb;
+      --good: #087a55;
+      --bad: #b42318;
+      --warn: #a15c00;
+      --shadow: 0 18px 55px rgba(20, 36, 66, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(49, 87, 213, .10), transparent 32rem),
+        radial-gradient(circle at 90% 90%, rgba(38, 166, 154, .08), transparent 30rem),
+        var(--bg);
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      line-height: 1.55;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+
+    .app {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      color: #fff;
+      background: linear-gradient(135deg, #3157d5, #6338b7);
+      box-shadow: 0 8px 24px rgba(49, 87, 213, .28);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .7);
+      font-size: 13px;
+    }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #18a675; }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid rgba(216, 224, 234, .9);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .intro-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(340px, .95fr);
+      min-height: 680px;
+    }
+
+    .intro-copy {
+      padding: 54px 54px 46px;
+      background: linear-gradient(155deg, #fff 30%, #f3f6ff 100%);
+    }
+
+    .eyebrow {
+      color: var(--brand);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    h1 {
+      margin: 12px 0 18px;
+      font-size: clamp(34px, 4.5vw, 57px);
+      line-height: 1.12;
+      letter-spacing: -.045em;
+    }
+
+    .lead { max-width: 600px; margin: 0 0 28px; color: #4d5b70; font-size: 17px; }
+
+    .task-cards { display: grid; gap: 13px; margin-top: 28px; }
+
+    .task-card {
+      display: grid;
+      grid-template-columns: 50px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 17px;
+      border: 1px solid #e2e7ef;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .76);
+    }
+
+    .task-icon {
+      display: grid;
+      place-items: center;
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      font-weight: 900;
+      background: #edf1ff;
+      color: var(--brand);
+    }
+
+    .task-card h2 { margin: 0 0 2px; font-size: 16px; }
+    .task-card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .instruction-wrap {
+      max-width: 940px;
+      min-height: 680px;
+      margin: 0 auto;
+      padding: 54px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .instruction-tasks .task-card { grid-template-columns: 70px minmax(0, 1fr); }
+    .instruction-tasks .task-icon {
+      width: 64px;
+      height: 58px;
+      padding: 0 4px;
+      white-space: nowrap;
+      font-size: 14px;
+      letter-spacing: -.08em;
+    }
+
+    .instruction-actions {
+      display: grid;
+      grid-template-columns: 140px minmax(240px, 1fr);
+      gap: 12px;
+      width: min(100%, 560px);
+    }
+    .instruction-actions button { width: 100%; white-space: nowrap; }
+
+    .settings {
+      padding: 42px 38px;
+      border-left: 1px solid #e3e8f0;
+      background: #fbfcfe;
+    }
+
+    .settings h2 { margin: 0 0 5px; font-size: 22px; }
+    .settings-sub { margin: 0 0 25px; color: var(--muted); font-size: 14px; }
+
+    .field { margin-bottom: 17px; }
+    .field label { display: block; margin-bottom: 7px; font-size: 14px; font-weight: 700; }
+    .field input {
+      width: 100%;
+      height: 46px;
+      padding: 0 13px;
+      border: 1px solid #cfd8e5;
+      border-radius: 11px;
+      outline: none;
+      color: var(--ink);
+      background: #fff;
+    }
+    .field input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(49, 87, 213, .12); }
+
+    .config-group {
+      margin: 20px 0;
+      padding: 16px;
+      border: 1px solid #e1e7ef;
+      border-radius: 15px;
+      background: #fff;
+    }
+
+    .config-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 800; }
+    .mini-tag { padding: 3px 8px; border-radius: 999px; color: var(--brand); background: #edf1ff; font-size: 11px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .hint { color: var(--muted); font-size: 12px; }
+
+    .primary, .secondary, .danger, .answer-btn {
+      min-height: 46px;
+      border: 0;
+      border-radius: 12px;
+      padding: 0 20px;
+      font-weight: 800;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+    .primary:hover, .secondary:hover, .answer-btn:hover { transform: translateY(-1px); }
+    .primary { width: 100%; color: #fff; background: var(--brand); box-shadow: 0 9px 22px rgba(49, 87, 213, .25); }
+    .primary:hover { background: var(--brand-dark); }
+    .secondary { color: var(--brand); background: #edf1ff; }
+    .danger { color: var(--bad); background: #fff0ef; }
+
+    .experiment {
+      position: relative;
+      min-height: 680px;
+      background: #fdfefe;
+    }
+
+    .exp-header {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+      padding: 18px 24px;
+      border-bottom: 1px solid #e5eaf1;
+    }
+
+    .progress-wrap { min-width: 0; }
+    .progress-label { display: flex; justify-content: space-between; margin-bottom: 7px; color: var(--muted); font-size: 12px; }
+    .progress { overflow: hidden; height: 7px; border-radius: 999px; background: #e9edf4; }
+    .progress > span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3157d5, #27a790); transition: width .25s ease; }
+
+    .task-label { min-width: 128px; padding: 8px 13px; border-radius: 999px; text-align: center; color: var(--brand); background: #edf1ff; font-size: 13px; font-weight: 800; }
+    .timer { justify-self: end; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+    .timer strong { color: var(--ink); font-size: 20px; }
+
+    .stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 596px;
+      padding: 42px 24px 36px;
+      text-align: center;
+      outline: none;
+    }
+
+    .prompt { margin-bottom: 40px; color: var(--muted); font-size: 15px; }
+    .stimulus {
+      min-height: 128px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 45px;
+      font-weight: 900;
+      line-height: 1;
+      user-select: none;
+    }
+    .stroop-word { font-size: clamp(68px, 10vw, 112px); letter-spacing: .06em; }
+    .flanker-arrows { color: #172132; font-family: Arial, sans-serif; font-size: clamp(58px, 9vw, 98px); letter-spacing: .15em; white-space: nowrap; }
+    .fixation { color: #23304a; font-size: 74px; font-weight: 300; }
+    .round-cue { color: var(--brand); font-size: clamp(42px, 7vw, 74px); line-height: 1.15; }
+
+    .answers { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; min-height: 52px; }
+    .answer-btn { min-width: 108px; color: #fff; box-shadow: 0 7px 18px rgba(22, 33, 50, .12); }
+    .answer-btn small { display: block; margin-top: -2px; font-size: 10px; font-weight: 600; opacity: .78; }
+    .answer-btn.direction { min-width: 154px; color: var(--ink); border: 1px solid #d9e0e9; background: #fff; font-size: 21px; }
+
+    .feedback {
+      height: 24px;
+      margin-top: 22px;
+      font-weight: 800;
+      opacity: 0;
+    }
+    .feedback.show { opacity: 1; }
+    .feedback.correct { color: var(--good); }
+    .feedback.wrong { color: var(--bad); }
+    .feedback.timeout { color: var(--warn); }
+
+    .help-line { margin-top: 26px; color: #8a94a6; font-size: 12px; }
+
+    .quit {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      min-height: 36px;
+      border: 0;
+      border-radius: 9px;
+      padding: 0 13px;
+      color: #7a4450;
+      background: #fff1f2;
+      font-size: 12px;
+    }
+
+    .results { padding: 44px; }
+    .result-heading { display: flex; justify-content: space-between; gap: 18px; align-items: end; margin-bottom: 26px; }
+    .result-heading h1 { margin: 0 0 4px; font-size: 36px; }
+    .result-heading p { margin: 0; color: var(--muted); }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin-bottom: 24px; }
+    .metric { padding: 18px; border: 1px solid #e1e7ef; border-radius: 15px; background: #fbfcfe; }
+    .metric span { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+    .metric strong { font-size: 27px; font-variant-numeric: tabular-nums; }
+
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .summary-card { padding: 22px; border: 1px solid #e1e7ef; border-radius: 17px; }
+    .summary-card h2 { margin: 0 0 15px; font-size: 18px; }
+    .summary-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid #edf0f4; color: var(--muted); font-size: 14px; }
+    .summary-row strong { color: var(--ink); }
+
+    .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+    .actions .primary { width: auto; }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 820px) {
+      .intro-layout { grid-template-columns: 1fr; }
+      .settings { border-top: 1px solid #e3e8f0; border-left: 0; }
+      .intro-copy { padding: 38px 26px; }
+      .settings, .results { padding: 30px 24px; }
+      .metric-grid { grid-template-columns: 1fr 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .exp-header { grid-template-columns: 1fr auto; }
+      .task-label { grid-row: 2; grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 500px) {
+      .app { width: min(100% - 16px, 1120px); padding-top: 12px; }
+      .topbar .badge { display: none; }
+      .field-row { grid-template-columns: 1fr; }
+      .metric-grid { grid-template-columns: 1fr; }
+      .result-heading { align-items: flex-start; flex-direction: column; }
+      .answer-btn { min-width: 92px; }
+      .flanker-arrows { letter-spacing: .06em; }
+      .instruction-wrap { min-height: 0; padding: 36px 22px; }
+      .instruction-tasks .task-card { grid-template-columns: 58px minmax(0, 1fr); }
+      .instruction-tasks .task-icon { width: 54px; font-size: 12px; }
+      .instruction-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark" aria-hidden="true">认</div><span>Stroop–Flanker混合测试</span></div>
+      <a class="badge" href="index.html" style="text-decoration:none">← 返回实验平台</a>
+    </header>
+
+    <section class="panel screen active" id="setupScreen" aria-labelledby="pageTitle">
+      <div class="intro-layout">
+        <div class="intro-copy">
+          <div class="eyebrow">COGNITIVE CONTROL BATTERY</div>
+          <h1 id="pageTitle">Stroop × Flanker<br>混合测试</h1>
+          <p class="lead">Stroop 与 Flanker 将按设定轮数随机排序，每轮持续到设定时间结束。请在保证正确的前提下尽快作答。</p>
+
+          <div class="task-cards">
+            <article class="task-card">
+              <div class="task-icon" aria-hidden="true"><span style="color:#d92d20">红</span></div>
+              <div><h2>Stroop 颜色字任务</h2><p>判断文字的显示颜色，忽略文字本身的含义。</p></div>
+            </article>
+            <article class="task-card">
+              <div class="task-icon" aria-hidden="true">⇆</div>
+              <div><h2>Flanker 箭头任务</h2><p>判断中央箭头的方向，忽略两侧干扰箭头。</p></div>
+            </article>
+          </div>
+        </div>
+
+        <form class="settings" id="settingsForm">
+          <h2>测试设置</h2>
+          <p class="settings-sub">每轮按设定时长连续出题；单题限时统一使用毫秒。</p>
+
+          <div class="field">
+            <label for="participantId">被试编号</label>
+            <input id="participantId" maxlength="40" autocomplete="off" placeholder="例如：P001" required>
+          </div>
+
+          <div class="field">
+            <label for="testItemId">测试项目编号</label>
+            <input id="testItemId" maxlength="40" autocomplete="off" placeholder="例如：MIX-01" required>
+          </div>
+
+          <div class="config-group">
+            <div class="config-title"><span>Stroop 任务</span><span class="mini-tag">中文色词</span></div>
+            <div class="field-row">
+              <div class="field">
+                <label for="stroopRounds">轮数</label>
+                <input id="stroopRounds" type="number" min="1" max="20" value="2" required>
+              </div>
+              <div class="field">
+                <label for="stroopDuration">每轮时长（分钟）</label>
+                <input id="stroopDuration" type="number" min="0.05" max="120" step="0.05" value="4" required>
+              </div>
+            </div>
+            <div class="field">
+              <label for="stroopTime">单题限时（毫秒）</label>
+              <input id="stroopTime" type="number" min="100" max="60000" step="50" value="3000" required>
+            </div>
+            <div class="hint">作答方式：仅可使用鼠标点击颜色按钮。</div>
+          </div>
+
+          <div class="config-group">
+            <div class="config-title"><span>Flanker 任务</span><span class="mini-tag">中央目标</span></div>
+            <div class="field-row">
+              <div class="field">
+                <label for="flankerRounds">轮数</label>
+                <input id="flankerRounds" type="number" min="1" max="20" value="2" required>
+              </div>
+              <div class="field">
+                <label for="flankerDuration">每轮时长（分钟）</label>
+                <input id="flankerDuration" type="number" min="0.05" max="120" step="0.05" value="4" required>
+              </div>
+            </div>
+            <div class="field">
+              <label for="flankerTime">单题限时（毫秒）</label>
+              <input id="flankerTime" type="number" min="100" max="60000" step="50" value="2000" required>
+            </div>
+            <div class="hint">作答方式：可使用键盘左、右方向键，或点击屏幕按钮。</div>
+          </div>
+
+          <div class="field">
+            <label for="fixationTime">试次间隔／注视点（毫秒）</label>
+            <input id="fixationTime" type="number" min="0" max="5000" step="50" value="500" required>
+          </div>
+          <p class="hint">各轮顺序随机安排；每轮开始前会用3秒提示下一轮任务及作答设备。</p>
+          <button class="primary" type="submit">阅读说明并开始</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel screen" id="instructionScreen" aria-labelledby="instructionTitle">
+      <div class="instruction-wrap">
+        <div class="eyebrow">实验说明</div>
+        <h1 id="instructionTitle" style="font-size:38px">请只对目标特征作答</h1>
+        <div class="task-cards instruction-tasks">
+          <article class="task-card">
+            <div class="task-icon"><span style="color:#2563eb">红</span></div>
+            <div><h2>Stroop 轮：只用鼠标</h2><p>示例左侧的“红”字实际显示为蓝色，因此正确答案是“蓝”。请用鼠标点击对应颜色按钮，键盘输入无效。</p></div>
+          </article>
+          <article class="task-card">
+            <div class="task-icon">&gt;&gt;&lt;&gt;&gt;</div>
+            <div><h2>Flanker 轮：键盘或鼠标</h2><p>只看正中央箭头。示例中央箭头向左，因此按键盘左方向键或点击“向左”按钮；两侧箭头方向无需理会。</p></div>
+          </article>
+        </div>
+        <p class="lead" style="margin-top:28px">每题仅记录第一次作答，超出单题毫秒限时记为“超时”。每轮持续到该任务的设定时长结束；进入每一轮前会显示3秒任务与设备提示。</p>
+        <div class="instruction-actions">
+          <button class="secondary" id="backToSetup" type="button">返回设置</button>
+          <button class="primary" id="beginTest" type="button">开始测试</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel screen experiment" id="testScreen" aria-label="测试进行中">
+      <div class="exp-header">
+        <div class="progress-wrap">
+          <div class="progress-label"><span>总进度</span><span id="progressText">0 / 0</span></div>
+          <div class="progress"><span id="progressBar"></span></div>
+        </div>
+        <div class="task-label" id="taskLabel">准备</div>
+        <div class="timer">本轮 <strong id="roundTimerText">--:--</strong>　·　本题 <strong id="timerText">--</strong> ms</div>
+      </div>
+      <div class="stage" id="stage" tabindex="-1">
+        <div class="prompt" id="promptText">请准备</div>
+        <div class="stimulus" id="stimulus" aria-live="polite"></div>
+        <div class="answers" id="answers"></div>
+        <div class="feedback" id="feedback" aria-live="assertive"></div>
+        <div class="help-line" id="helpLine"></div>
+      </div>
+      <button class="quit" id="quitTest" type="button">提前结束</button>
+    </section>
+
+    <section class="panel screen" id="resultScreen" aria-labelledby="resultTitle">
+      <div class="results">
+        <div class="result-heading">
+          <div><div class="eyebrow">TEST COMPLETE</div><h1 id="resultTitle">测试完成</h1><p id="resultMeta"></p></div>
+          <div class="badge"><span class="dot"></span><span id="completionState">已完成全部试次</span></div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric"><span>总正确率</span><strong id="overallAccuracy">—</strong></div>
+          <div class="metric"><span>正确反应平均时</span><strong id="overallRt">—</strong></div>
+          <div class="metric"><span>正确 / 已作答</span><strong id="correctCount">—</strong></div>
+          <div class="metric"><span>超时数</span><strong id="timeoutCount">—</strong></div>
+        </div>
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="actions">
+          <button class="secondary" id="downloadJson" type="button">导出 JSON</button>
+          <button class="secondary" id="downloadCsv" type="button">导出 CSV</button>
+          <button class="primary" id="restartTest" type="button">返回实验平台</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app-storage.js"></script>
+  <script>
+    'use strict';
+
+    const COLORS = [
+      { name: '红', css: '#d92d20', key: '1' },
+      { name: '蓝', css: '#2563eb', key: '2' },
+      { name: '绿', css: '#079455', key: '3' },
+      { name: '黄', css: '#e6a000', key: '4' },
+      { name: '紫', css: '#7a3db8', key: '5' }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const screens = ['setupScreen', 'instructionScreen', 'testScreen', 'resultScreen'];
+    let config = null;
+    let blocks = [];
+    let results = [];
+    let currentBlockIndex = -1;
+    let currentRound = null;
+    let currentTrial = null;
+    let globalTrialNumber = 0;
+    let taskTrialCounts = { stroop: 0, flanker: 0 };
+    let finishedRoundCount = 0;
+    let acceptingResponse = false;
+    let trialStartedAt = 0;
+    let trialDeadline = 0;
+    let roundStartedAt = 0;
+    let roundDeadline = 0;
+    let deadlineTimer = null;
+    let roundEndTimer = null;
+    let animationFrame = null;
+    let pendingTimer = null;
+    let aborted = false;
+    let testStartedAt = null;
+    let currentRun = null;
+
+    function showScreen(id) {
+      screens.forEach(name => $(name).classList.toggle('active', name === id));
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    const initialQuery = new URLSearchParams(location.search);
+    $('participantId').value = initialQuery.get('participant') || '';
+    $('testItemId').value = initialQuery.get('item') || '';
+
+    function randomInt(max) {
+      if (max <= 0) return 0;
+      if (window.crypto && crypto.getRandomValues) {
+        const range = 0x100000000;
+        const limit = range - (range % max);
+        const value = new Uint32Array(1);
+        do crypto.getRandomValues(value); while (value[0] >= limit);
+        return value[0] % max;
+      }
+      return Math.floor(Math.random() * max);
+    }
+
+    function pick(array) { return array[randomInt(array.length)]; }
+
+    function shuffle(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = randomInt(i + 1);
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function makeTaskOrder(stroopCount, flankerCount) {
+      const remaining = { stroop: stroopCount, flanker: flankerCount };
+      const order = [];
+      while (remaining.stroop + remaining.flanker > 0) {
+        let choices = Object.keys(remaining).filter(k => remaining[k] > 0);
+        if (order.length >= 2 && order.at(-1) === order.at(-2)) {
+          const other = order.at(-1) === 'stroop' ? 'flanker' : 'stroop';
+          if (remaining[other] > 0) choices = [other];
+        }
+        // 前瞻一步，避免过早耗尽某一类任务而在序列末尾形成不必要的长连串。
+        const feasible = choices.filter(option => {
+          const after = { ...remaining, [option]: remaining[option] - 1 };
+          const larger = Math.max(after.stroop, after.flanker);
+          const smaller = Math.min(after.stroop, after.flanker);
+          return larger <= 2 * (smaller + 1);
+        });
+        if (feasible.length) choices = feasible;
+        const total = choices.reduce((sum, k) => sum + remaining[k], 0);
+        let draw = randomInt(total);
+        let chosen = choices[0];
+        for (const option of choices) {
+          if (draw < remaining[option]) { chosen = option; break; }
+          draw -= remaining[option];
+        }
+        order.push(chosen);
+        remaining[chosen]--;
+      }
+      return order;
+    }
+
+    function buildBlocks() {
+      const order = makeTaskOrder(config.stroopRounds, config.flankerRounds);
+      const taskRoundNumbers = { stroop: 0, flanker: 0 };
+      return order.map((type, index) => {
+        taskRoundNumbers[type]++;
+        return {
+          roundIndex: index + 1,
+          taskRound: taskRoundNumbers[type],
+          type,
+          durationMs: (type === 'stroop' ? config.stroopDuration : config.flankerDuration) * 60000,
+          startedAt: null,
+          endedAt: null,
+          completed: false
+        };
+      });
+    }
+
+    function createTrial() {
+      const type = currentRound.type;
+      globalTrialNumber++;
+      taskTrialCounts[type]++;
+      const common = {
+        index: globalTrialNumber,
+        taskTrial: taskTrialCounts[type],
+        roundIndex: currentRound.roundIndex,
+        taskRound: currentRound.taskRound,
+        type
+      };
+      if (type === 'stroop') {
+        const inkIndex = randomInt(COLORS.length);
+        const congruent = randomInt(10) < 2; // 一致20%，不一致80%
+        let wordIndex = inkIndex;
+        if (!congruent) {
+          const others = COLORS.map((_, i) => i).filter(i => i !== inkIndex);
+          wordIndex = pick(others);
+        }
+        return {
+          ...common,
+          congruent,
+          word: COLORS[wordIndex].name,
+          ink: COLORS[inkIndex].name,
+          inkCss: COLORS[inkIndex].css,
+          correctResponse: COLORS[inkIndex].name,
+          correctKey: null,
+          timeoutMs: config.stroopTime
+        };
+      }
+      const target = randomInt(2) === 0 ? '左' : '右';
+      const congruent = randomInt(2) === 0;
+      const flank = congruent ? target : (target === '左' ? '右' : '左');
+      const targetChar = target === '左' ? '<' : '>';
+      const flankChar = flank === '左' ? '<' : '>';
+      return {
+        ...common,
+        congruent,
+        arrows: flankChar.repeat(2) + targetChar + flankChar.repeat(2),
+        target,
+        flank,
+        correctResponse: target,
+        correctKey: target === '左' ? 'ArrowLeft' : 'ArrowRight',
+        timeoutMs: config.flankerTime
+      };
+    }
+
+    function readConfig() {
+      const next = {
+        participantId: $('participantId').value.trim(),
+        testItemId: $('testItemId').value.trim(),
+        stroopRounds: Number($('stroopRounds').value),
+        stroopDuration: Number($('stroopDuration').value),
+        stroopTime: Number($('stroopTime').value),
+        flankerRounds: Number($('flankerRounds').value),
+        flankerDuration: Number($('flankerDuration').value),
+        flankerTime: Number($('flankerTime').value),
+        fixationTime: Number($('fixationTime').value)
+      };
+      const valid = next.participantId && next.testItemId
+        && Number.isInteger(next.stroopRounds) && next.stroopRounds >= 1 && next.stroopRounds <= 20
+        && Number.isInteger(next.flankerRounds) && next.flankerRounds >= 1 && next.flankerRounds <= 20
+        && next.stroopDuration >= .05 && next.stroopDuration <= 120
+        && next.flankerDuration >= .05 && next.flankerDuration <= 120
+        && next.stroopTime >= 100 && next.stroopTime <= 60000
+        && next.flankerTime >= 100 && next.flankerTime <= 60000
+        && next.fixationTime >= 0 && next.fixationTime <= 5000;
+      if (!valid) throw new Error('请填写被试编号、测试项目编号，并检查轮数和时间设置。');
+      return next;
+    }
+
+    $('settingsForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      try {
+        config = readConfig();
+        showScreen('instructionScreen');
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    $('backToSetup').addEventListener('click', () => showScreen('setupScreen'));
+
+    $('beginTest').addEventListener('click', () => {
+      blocks = buildBlocks();
+      results = [];
+      currentBlockIndex = -1;
+      currentRound = null;
+      currentTrial = null;
+      globalTrialNumber = 0;
+      taskTrialCounts = { stroop: 0, flanker: 0 };
+      finishedRoundCount = 0;
+      aborted = false;
+      currentRun = null;
+      testStartedAt = new Date().toISOString();
+      showScreen('testScreen');
+      startNextRound();
+    });
+
+    function startNextRound() {
+      clearAllTimers();
+      currentBlockIndex++;
+      if (currentBlockIndex >= blocks.length) { finishTest(); return; }
+      currentRound = blocks[currentBlockIndex];
+      runRoundCue(3);
+    }
+
+    function runRoundCue(value) {
+      const taskName = currentRound.type === 'stroop' ? 'Stroop 颜色字' : 'Flanker 箭头';
+      const device = currentRound.type === 'stroop' ? '请准备好鼠标' : '请准备好键盘左右方向键或鼠标';
+      $('taskLabel').textContent = `第 ${currentRound.roundIndex} / ${blocks.length} 轮`;
+      $('promptText').textContent = '下一轮任务';
+      $('answers').replaceChildren();
+      $('helpLine').textContent = `${device} · ${value > 0 ? value + ' 秒后开始' : '开始'}`;
+      $('timerText').textContent = '--';
+      $('roundTimerText').textContent = formatClock(currentRound.durationMs);
+      $('stimulus').className = 'stimulus round-cue';
+      $('stimulus').style.color = '';
+      $('stimulus').textContent = taskName;
+      $('feedback').textContent = value > 0 ? String(value) : '';
+      $('feedback').className = value > 0 ? 'feedback show correct' : 'feedback';
+      updateProgress(0);
+      if (value > 1) pendingTimer = setTimeout(() => runRoundCue(value - 1), 1000);
+      else pendingTimer = setTimeout(startRound, 1000);
+    }
+
+    function startRound() {
+      roundStartedAt = performance.now();
+      roundDeadline = roundStartedAt + currentRound.durationMs;
+      currentRound.startedAt = new Date().toISOString();
+      roundEndTimer = setTimeout(endRound, currentRound.durationMs);
+      showFixation();
+    }
+
+    function endRound() {
+      if (!currentRound || currentRound.completed) return;
+      clearAllTimers();
+      currentRound.completed = true;
+      currentRound.endedAt = new Date().toISOString();
+      finishedRoundCount++;
+      currentTrial = null;
+      pendingTimer = setTimeout(startNextRound, 250);
+    }
+
+    function nextTrial() {
+      if (performance.now() >= roundDeadline) { endRound(); return; }
+      showFixation();
+    }
+
+    function showFixation() {
+      acceptingResponse = false;
+      currentTrial = null;
+      $('taskLabel').textContent = `第 ${currentRound.roundIndex} 轮 · ${currentRound.type === 'stroop' ? 'Stroop' : 'Flanker'}`;
+      $('promptText').textContent = '请保持注视';
+      $('stimulus').className = 'stimulus fixation';
+      $('stimulus').textContent = '+';
+      $('answers').replaceChildren();
+      $('feedback').className = 'feedback';
+      $('feedback').textContent = '';
+      $('helpLine').textContent = '';
+      $('timerText').textContent = '--';
+      updateProgress();
+      const remaining = Math.max(0, roundDeadline - performance.now());
+      pendingTimer = setTimeout(showTrial, Math.min(config.fixationTime, remaining));
+    }
+
+    function showTrial() {
+      if (performance.now() >= roundDeadline) { endRound(); return; }
+      currentTrial = createTrial();
+      acceptingResponse = true;
+      trialStartedAt = performance.now();
+      const availableMs = Math.max(0, roundDeadline - trialStartedAt);
+      const effectiveTimeout = Math.min(currentTrial.timeoutMs, availableMs);
+      trialDeadline = trialStartedAt + effectiveTimeout;
+      $('feedback').className = 'feedback';
+      $('feedback').textContent = '';
+      if (currentTrial.type === 'stroop') renderStroop(currentTrial);
+      else renderFlanker(currentTrial);
+      $('stage').focus({ preventScroll: true });
+      updateTimer();
+      deadlineTimer = setTimeout(() => {
+        if (performance.now() >= roundDeadline - 2) endRound();
+        else submitResponse(null, null, true);
+      }, effectiveTimeout);
+    }
+
+    function renderStroop(trial) {
+      $('taskLabel').textContent = 'Stroop 颜色字';
+      $('promptText').textContent = '请选择文字的显示颜色（忽略字义）';
+      $('stimulus').className = 'stimulus stroop-word';
+      $('stimulus').textContent = trial.word;
+      $('stimulus').style.color = trial.inkCss;
+      $('helpLine').textContent = '仅可使用鼠标点击作答';
+      const fragment = document.createDocumentFragment();
+      COLORS.forEach(color => {
+        const button = document.createElement('button');
+        button.className = 'answer-btn';
+        button.style.background = color.css;
+        button.textContent = color.name;
+        button.addEventListener('click', () => submitResponse(color.name, 'MouseClick'));
+        fragment.appendChild(button);
+      });
+      $('answers').replaceChildren(fragment);
+    }
+
+    function renderFlanker(trial) {
+      $('taskLabel').textContent = 'Flanker 箭头';
+      $('promptText').textContent = '请判断中央箭头方向（忽略两侧箭头）';
+      $('stimulus').className = 'stimulus flanker-arrows';
+      $('stimulus').style.color = '';
+      $('stimulus').textContent = trial.arrows;
+      $('helpLine').textContent = '键盘：← 左　→ 右；也可点击屏幕按钮';
+      const left = document.createElement('button');
+      left.className = 'answer-btn direction';
+      left.textContent = '← 向左';
+      left.addEventListener('click', () => submitResponse('左', 'MouseClick'));
+      const right = document.createElement('button');
+      right.className = 'answer-btn direction';
+      right.textContent = '向右 →';
+      right.addEventListener('click', () => submitResponse('右', 'MouseClick'));
+      $('answers').replaceChildren(left, right);
+    }
+
+    function updateTimer() {
+      if (!acceptingResponse) return;
+      const remaining = Math.max(0, trialDeadline - performance.now());
+      const roundRemaining = Math.max(0, roundDeadline - performance.now());
+      $('timerText').textContent = String(Math.ceil(remaining));
+      $('roundTimerText').textContent = formatClock(roundRemaining);
+      updateProgress(roundRemaining);
+      animationFrame = requestAnimationFrame(updateTimer);
+    }
+
+    function formatClock(milliseconds) {
+      const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function updateProgress(roundRemaining = null) {
+      const prior = blocks.slice(0, Math.max(0, currentBlockIndex)).reduce((sum, block) => sum + block.durationMs, 0);
+      const elapsed = roundRemaining === null || !roundStartedAt ? 0 : Math.max(0, currentRound.durationMs - roundRemaining);
+      const total = blocks.reduce((sum, block) => sum + block.durationMs, 0);
+      $('progressText').textContent = `第 ${Math.min(currentBlockIndex + 1, blocks.length)} / ${blocks.length} 轮`;
+      $('progressBar').style.width = `${total ? ((prior + elapsed) / total) * 100 : 0}%`;
+    }
+
+    function submitResponse(response, key, timedOut = false) {
+      if (!acceptingResponse || !currentTrial) return;
+      acceptingResponse = false;
+      clearTimeout(deadlineTimer);
+      cancelAnimationFrame(animationFrame);
+      const now = performance.now();
+      const rtMs = timedOut ? null : Math.round(now - trialStartedAt);
+      const correct = !timedOut && response === currentTrial.correctResponse;
+      results.push({
+        ...currentTrial,
+        response,
+        responseKey: key,
+        correct,
+        timedOut,
+        rtMs,
+        presentedAt: new Date(Date.now() - (timedOut ? currentTrial.timeoutMs : rtMs)).toISOString(),
+        answeredAt: new Date().toISOString()
+      });
+      updateProgress();
+      [...$('answers').querySelectorAll('button')].forEach(btn => btn.disabled = true);
+      const feedback = $('feedback');
+      if (timedOut) {
+        feedback.textContent = '超时';
+        feedback.className = 'feedback show timeout';
+      } else if (correct) {
+        feedback.textContent = '正确';
+        feedback.className = 'feedback show correct';
+      } else {
+        feedback.textContent = '错误';
+        feedback.className = 'feedback show wrong';
+      }
+      pendingTimer = setTimeout(nextTrial, 280);
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (!$('testScreen').classList.contains('active') || !acceptingResponse || !currentTrial) return;
+      if (event.repeat) return;
+      if (currentTrial.type === 'flanker' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        event.preventDefault();
+        submitResponse(event.key === 'ArrowLeft' ? '左' : '右', event.key);
+      }
+    });
+
+    function clearAllTimers() {
+      acceptingResponse = false;
+      clearTimeout(deadlineTimer);
+      clearTimeout(roundEndTimer);
+      clearTimeout(pendingTimer);
+      cancelAnimationFrame(animationFrame);
+    }
+
+    $('quitTest').addEventListener('click', () => {
+      if (confirm('确定提前结束测试吗？已完成的试次仍会生成结果。')) {
+        aborted = true;
+        finishTest();
+      }
+    });
+
+    function mean(values) {
+      if (!values.length) return null;
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    function summarize(rows) {
+      const completed = rows.length;
+      const correct = rows.filter(row => row.correct).length;
+      const timeout = rows.filter(row => row.timedOut).length;
+      const validRt = rows.filter(row => row.correct && row.rtMs !== null).map(row => row.rtMs);
+      const congruent = rows.filter(row => row.congruent);
+      const incongruent = rows.filter(row => !row.congruent);
+      const congruentRt = mean(congruent.filter(row => row.correct).map(row => row.rtMs));
+      const incongruentRt = mean(incongruent.filter(row => row.correct).map(row => row.rtMs));
+      return {
+        completed,
+        correct,
+        timeout,
+        accuracy: completed ? correct / completed : 0,
+        meanCorrectRt: mean(validRt),
+        congruentAccuracy: congruent.length ? congruent.filter(row => row.correct).length / congruent.length : null,
+        incongruentAccuracy: incongruent.length ? incongruent.filter(row => row.correct).length / incongruent.length : null,
+        congruencyEffectMs: congruentRt !== null && incongruentRt !== null ? incongruentRt - congruentRt : null
+      };
+    }
+
+    function pct(value) { return value === null ? '—' : `${(value * 100).toFixed(1)}%`; }
+    function ms(value) { return value === null ? '—' : `${Math.round(value)} ms`; }
+
+    async function finishTest() {
+      if ($('resultScreen').classList.contains('active')) return;
+      clearAllTimers();
+      const all = summarize(results);
+      $('overallAccuracy').textContent = pct(all.accuracy);
+      $('overallRt').textContent = ms(all.meanCorrectRt);
+      $('correctCount').textContent = `${all.correct} / ${all.completed}`;
+      $('timeoutCount').textContent = all.timeout;
+      const completedAt = new Date().toISOString();
+      $('resultMeta').textContent = `被试 ${config.participantId} · 项目 ${config.testItemId} · ${new Date(completedAt).toLocaleString('zh-CN')} · 完成 ${finishedRoundCount} / ${blocks.length} 轮 · ${all.completed} 个试次`;
+      $('completionState').textContent = aborted ? '测试已提前结束' : `已完成全部 ${blocks.length} 轮`;
+      const visibleBlocks = aborted ? blocks.slice(0, Math.max(0, currentBlockIndex + 1)) : blocks;
+      $('summaryGrid').innerHTML = visibleBlocks.map(roundSummaryCard).join('');
+      showScreen('resultScreen');
+      currentRun = {
+        testType: 'mixed', participantId: config.participantId, testItemId: config.testItemId,
+        startedAt: testStartedAt, completedAt, aborted, config, rounds: blocks,
+        summary: {
+          overall: all,
+          stroop: summarize(results.filter(row => row.type === 'stroop')),
+          flanker: summarize(results.filter(row => row.type === 'flanker')),
+          byRound: blocks.map(block => ({ roundIndex: block.roundIndex, taskRound: block.taskRound, type: block.type, completed: block.completed, summary: summarize(results.filter(row => row.roundIndex === block.roundIndex)) }))
+        },
+        trials: results
+      };
+      try {
+        currentRun = await ExperimentStore.saveRun(currentRun);
+        $('completionState').textContent = `${aborted ? '提前结束' : '全部完成'} · 已保存`;
+      } catch (error) {
+        $('completionState').textContent = '自动保存失败，请立即导出';
+        alert(`自动保存失败：${error.message}`);
+      }
+    }
+
+    function roundSummaryCard(block) {
+      const summary = summarize(results.filter(row => row.roundIndex === block.roundIndex));
+      const taskName = block.type === 'stroop' ? 'Stroop 颜色字' : 'Flanker 箭头';
+      const status = block.completed ? '已完成' : '未完整结束';
+      return `<article class="summary-card">
+        <h2>第 ${block.roundIndex} 轮 · ${taskName}</h2>
+        <div class="summary-row"><span>任务内轮次 / 状态</span><strong>第 ${block.taskRound} 轮 · ${status}</strong></div>
+        <div class="summary-row"><span>计划时长</span><strong>${(block.durationMs / 60000).toFixed(2).replace(/\.00$/, '')} 分钟</strong></div>
+        <div class="summary-row"><span>已完成试次</span><strong>${summary.completed}</strong></div>
+        <div class="summary-row"><span>正确率</span><strong>${pct(summary.accuracy)}</strong></div>
+        <div class="summary-row"><span>正确反应平均时</span><strong>${ms(summary.meanCorrectRt)}</strong></div>
+        <div class="summary-row"><span>一致条件正确率</span><strong>${pct(summary.congruentAccuracy)}</strong></div>
+        <div class="summary-row"><span>不一致条件正确率</span><strong>${pct(summary.incongruentAccuracy)}</strong></div>
+        <div class="summary-row"><span>干扰效应（不一致－一致）</span><strong>${ms(summary.congruencyEffectMs)}</strong></div>
+      </article>`;
+    }
+
+    function safeFilePart(value) {
+      return (value || 'anonymous').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40);
+    }
+
+    function download(name, content, type) {
+      const blob = new Blob(['\ufeff', content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    function exportBaseName() {
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      return `认知负荷测试_${safeFilePart(config.participantId)}_${stamp}`;
+    }
+
+    $('downloadJson').addEventListener('click', () => currentRun && ExperimentStore.downloadRunJson(currentRun));
+
+    $('downloadCsv').addEventListener('click', () => currentRun && ExperimentStore.downloadRunCsv(currentRun));
+
+    $('restartTest').addEventListener('click', () => {
+      clearAllTimers();
+      location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
