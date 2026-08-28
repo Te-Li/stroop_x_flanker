@@ -187,6 +187,8 @@
 
     .settings h2 { margin: 0 0 5px; font-size: 22px; }
     .settings-sub { margin: 0 0 25px; color: var(--muted); font-size: 14px; }
+    .practice-banner { display: none; margin: -7px 0 20px; padding: 12px 14px; border-radius: 11px; color: #7a4b00; background: #fff4d6; font-size: 13px; font-weight: 700; }
+    .practice-banner.active { display: block; }
 
     .field { margin-bottom: 17px; }
     .field label { display: block; margin-bottom: 7px; font-size: 14px; font-weight: 700; }
@@ -281,7 +283,7 @@
     .round-cue { color: var(--brand); font-size: clamp(42px, 7vw, 74px); line-height: 1.15; }
 
     .answers { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; min-height: 52px; }
-    .answer-btn { min-width: 108px; color: #fff; box-shadow: 0 7px 18px rgba(22, 33, 50, .12); }
+    .answer-btn { min-width: 108px; color: #111; border: 1px solid #d9e0e9; background: #fff; box-shadow: 0 7px 18px rgba(22, 33, 50, .12); }
     .answer-btn small { display: block; margin-top: -2px; font-size: 10px; font-weight: 600; opacity: .78; }
     .answer-btn.direction { min-width: 154px; color: var(--ink); border: 1px solid #d9e0e9; background: #fff; font-size: 21px; }
 
@@ -385,10 +387,11 @@
         </div>
 
         <form class="settings" id="settingsForm">
-          <h2>测试设置</h2>
-          <p class="settings-sub">每轮按设定时长连续出题；单题限时统一使用毫秒。</p>
+          <h2 id="settingsTitle">测试设置</h2>
+          <p class="settings-sub" id="settingsSub">每轮按设定时长连续出题；单题限时统一使用毫秒。</p>
+          <div class="practice-banner" id="practiceBanner">练习模式：无需填写受试者资料，结果不会保存或计入正式成绩。</div>
 
-          <div class="field">
+          <div id="identityFields"><div class="field">
             <label for="participantId">被试编号</label>
             <input id="participantId" maxlength="40" autocomplete="off" placeholder="例如：P001" required>
           </div>
@@ -396,7 +399,7 @@
           <div class="field">
             <label for="testItemId">测试项目编号</label>
             <input id="testItemId" maxlength="40" autocomplete="off" placeholder="例如：MIX-01" required>
-          </div>
+          </div></div>
 
           <div class="config-group">
             <div class="config-title"><span>Stroop 任务</span><span class="mini-tag">中文色词</span></div>
@@ -551,8 +554,23 @@
     }
 
     const initialQuery = new URLSearchParams(location.search);
+    const isPractice = initialQuery.get('practice') === '1';
     $('participantId').value = initialQuery.get('participant') || '';
     $('testItemId').value = initialQuery.get('item') || '';
+    if (isPractice) {
+      $('identityFields').hidden = true;
+      $('participantId').required = false;
+      $('testItemId').required = false;
+      $('stroopRounds').value = '1';
+      $('stroopDuration').value = '0.5';
+      $('flankerRounds').value = '1';
+      $('flankerDuration').value = '0.5';
+      $('settingsTitle').textContent = '混合任务练习设置';
+      $('settingsSub').textContent = '默认各练习1轮、每轮30秒，可自行调整。';
+      $('practiceBanner').classList.add('active');
+      $('downloadJson').hidden = true;
+      $('downloadCsv').hidden = true;
+    }
 
     function randomInt(max) {
       if (max <= 0) return 0;
@@ -673,8 +691,9 @@
 
     function readConfig() {
       const next = {
-        participantId: $('participantId').value.trim(),
-        testItemId: $('testItemId').value.trim(),
+        participantId: isPractice ? '练习' : $('participantId').value.trim(),
+        testItemId: isPractice ? 'Stroop-Flanker练习' : $('testItemId').value.trim(),
+        practice: isPractice,
         stroopRounds: Number($('stroopRounds').value),
         stroopDuration: Number($('stroopDuration').value),
         stroopTime: Number($('stroopTime').value),
@@ -683,7 +702,7 @@
         flankerTime: Number($('flankerTime').value),
         fixationTime: Number($('fixationTime').value)
       };
-      const valid = next.participantId && next.testItemId
+      const valid = (isPractice || (next.participantId && next.testItemId))
         && Number.isInteger(next.stroopRounds) && next.stroopRounds >= 1 && next.stroopRounds <= 20
         && Number.isInteger(next.flankerRounds) && next.flankerRounds >= 1 && next.flankerRounds <= 20
         && next.stroopDuration >= .05 && next.stroopDuration <= 120
@@ -691,7 +710,7 @@
         && next.stroopTime >= 100 && next.stroopTime <= 60000
         && next.flankerTime >= 100 && next.flankerTime <= 60000
         && next.fixationTime >= 0 && next.fixationTime <= 5000;
-      if (!valid) throw new Error('请填写被试编号、测试项目编号，并检查轮数和时间设置。');
+      if (!valid) throw new Error(isPractice ? '请检查练习轮数和时间设置。' : '请填写被试编号、测试项目编号，并检查轮数和时间设置。');
       return next;
     }
 
@@ -821,7 +840,6 @@
       COLORS.forEach(color => {
         const button = document.createElement('button');
         button.className = 'answer-btn';
-        button.style.background = color.css;
         button.textContent = color.name;
         button.addEventListener('click', () => submitResponse(color.name, 'MouseClick'));
         fragment.appendChild(button);
@@ -924,7 +942,7 @@
     }
 
     $('quitTest').addEventListener('click', () => {
-      if (confirm('确定提前结束测试吗？已完成的试次仍会生成结果。')) {
+      if (confirm(isPractice ? '确定提前结束练习吗？' : '确定提前结束测试吗？已完成的试次仍会生成结果。')) {
         aborted = true;
         finishTest();
       }
@@ -968,8 +986,9 @@
       $('correctCount').textContent = `${all.correct} / ${all.completed}`;
       $('timeoutCount').textContent = all.timeout;
       const completedAt = new Date().toISOString();
-      $('resultMeta').textContent = `被试 ${config.participantId} · 项目 ${config.testItemId} · ${new Date(completedAt).toLocaleString('zh-CN')} · 完成 ${finishedRoundCount} / ${blocks.length} 轮 · ${all.completed} 个试次`;
-      $('completionState').textContent = aborted ? '测试已提前结束' : `已完成全部 ${blocks.length} 轮`;
+      $('resultTitle').textContent = isPractice ? '练习完成' : '测试完成';
+      $('resultMeta').textContent = isPractice ? `练习反馈 · 完成 ${finishedRoundCount} / ${blocks.length} 轮 · 不保存、不计入正式成绩` : `被试 ${config.participantId} · 项目 ${config.testItemId} · ${new Date(completedAt).toLocaleString('zh-CN')} · 完成 ${finishedRoundCount} / ${blocks.length} 轮 · ${all.completed} 个试次`;
+      $('completionState').textContent = isPractice ? '练习模式 · 未保存' : aborted ? '测试已提前结束' : `已完成全部 ${blocks.length} 轮`;
       const visibleBlocks = aborted ? blocks.slice(0, Math.max(0, currentBlockIndex + 1)) : blocks;
       $('summaryGrid').innerHTML = visibleBlocks.map(roundSummaryCard).join('');
       showScreen('resultScreen');
@@ -984,6 +1003,7 @@
         },
         trials: results
       };
+      if (isPractice) return;
       try {
         currentRun = await ExperimentStore.saveRun(currentRun);
         $('completionState').textContent = `${aborted ? '提前结束' : '全部完成'} · 已保存`;
@@ -1031,9 +1051,9 @@
       return `认知负荷测试_${safeFilePart(config.participantId)}_${stamp}`;
     }
 
-    $('downloadJson').addEventListener('click', () => currentRun && ExperimentStore.downloadRunJson(currentRun));
+    $('downloadJson').addEventListener('click', () => !isPractice && currentRun && ExperimentStore.downloadRunJson(currentRun));
 
-    $('downloadCsv').addEventListener('click', () => currentRun && ExperimentStore.downloadRunCsv(currentRun));
+    $('downloadCsv').addEventListener('click', () => !isPractice && currentRun && ExperimentStore.downloadRunCsv(currentRun));
 
     $('restartTest').addEventListener('click', () => {
       clearAllTimers();
