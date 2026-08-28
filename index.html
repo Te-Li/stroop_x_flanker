@@ -178,7 +178,10 @@
 
     async function renderHistory() {
       try {
-        cachedRuns = await ExperimentStore.listRuns();
+        cachedRuns = (await ExperimentStore.listRuns()).map(run => run.participantProfile ? run : {
+          ...run,
+          participantProfile: cachedParticipants.find(profile => profile.participantId === run.participantId) || null
+        });
         const testedParticipants = new Set(cachedRuns.map(run => run.participantId)).size;
         $('historyCount').textContent = `共 ${testedParticipants} 位受试者、${cachedRuns.length} 次测试；完整逐试次数据保存在本机浏览器数据库中。`;
         if (!cachedRuns.length) { $('historyTable').innerHTML = '<div class="empty">暂无实验记录</div>'; return; }
