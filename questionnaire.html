@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>主观疲劳问卷｜认知实验平台</title>
+  <style>
+    :root{--bg:#f2f1f8;--panel:#fff;--ink:#1d2030;--muted:#6d7184;--line:#dedfeb;--brand:#7552b8;--brand-dark:#5d3d9d;--soft:#f5f1fc;--good:#087a55;--bad:#b42318;--shadow:0 18px 55px rgba(34,29,60,.12)}
+    *{box-sizing:border-box}html,body{min-height:100%}body{margin:0;color:var(--ink);background:radial-gradient(circle at 8% 10%,rgba(117,82,184,.12),transparent 32rem),radial-gradient(circle at 92% 88%,rgba(49,87,213,.08),transparent 30rem),var(--bg);font-family:"Microsoft YaHei UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif;line-height:1.55}button,input{font:inherit}button{cursor:pointer}.app{width:min(980px,calc(100% - 32px));margin:auto;padding:28px 0 48px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}.brand{display:flex;align-items:center;gap:12px;font-weight:800}.mark{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;color:#fff;background:linear-gradient(135deg,#7552b8,#3157d5);box-shadow:0 8px 24px rgba(117,82,184,.25)}.home{padding:7px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:rgba(255,255,255,.76);text-decoration:none;font-size:13px}.panel{border:1px solid rgba(222,223,235,.95);border-radius:24px;background:var(--panel);box-shadow:var(--shadow)}.header{padding:44px 48px 32px;border-bottom:1px solid var(--line);background:linear-gradient(155deg,#fff 35%,#f7f3ff 100%);border-radius:24px 24px 0 0}.eyebrow{color:var(--brand);font-size:13px;font-weight:800;letter-spacing:.11em}h1{margin:10px 0 12px;font-size:clamp(34px,5vw,52px);line-height:1.1;letter-spacing:-.04em}.lead{max-width:760px;margin:0;color:#555d70}.identity{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}.identity div{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff}.identity span{display:block;color:var(--muted);font-size:12px}.identity strong{font-size:16px}.form{padding:34px 48px 44px}.section{margin-bottom:34px}.section-head{margin-bottom:18px}.section-head h2{margin:0 0 5px;font-size:24px}.section-head p{margin:0;color:var(--muted);font-size:14px}.vas-list{display:grid;gap:16px}.vas-item{padding:20px;border:1px solid var(--line);border-radius:16px;background:#fcfcfe}.question{font-weight:800}.english{margin-top:2px;color:var(--muted);font-size:13px}.slider-line{display:grid;grid-template-columns:70px 1fr 70px;gap:14px;align-items:center;margin-top:18px}.anchor{color:#596176;font-size:12px}.anchor:last-child{text-align:right}.slider-wrap{position:relative;padding-top:26px}.score{position:absolute;top:0;left:50%;transform:translateX(-50%);min-width:76px;text-align:center;color:var(--brand);font-size:12px;font-weight:800}.score.answered{font-size:15px}input[type=range]{width:100%;accent-color:var(--brand);cursor:pointer}.scale-numbers{display:flex;justify-content:space-between;color:#9297a6;font-size:10px}.poms-list{display:grid;gap:12px}.poms-item{display:grid;grid-template-columns:minmax(150px,1fr) minmax(420px,1.8fr);gap:20px;align-items:center;padding:17px 20px;border:1px solid var(--line);border-radius:15px}.poms-word strong{display:block}.poms-word span{color:var(--muted);font-size:13px}.likert{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.likert label{display:grid;place-items:center;min-height:50px;border:1px solid #d8d9e6;border-radius:10px;background:#fff;font-size:12px;text-align:center;cursor:pointer}.likert label:has(input:checked){border-color:var(--brand);color:var(--brand);background:var(--soft);font-weight:800}.likert input{position:absolute;opacity:0;pointer-events:none}.scale-help{display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:11px}.notice{padding:13px 15px;border-radius:12px;color:#554873;background:var(--soft);font-size:13px}.error{min-height:24px;margin:10px 0;color:var(--bad);font-size:13px}.primary,.secondary{min-height:48px;padding:0 20px;border:0;border-radius:12px;font-weight:800}.primary{width:100%;color:#fff;background:var(--brand);box-shadow:0 9px 22px rgba(117,82,184,.23)}.primary:hover{background:var(--brand-dark)}.secondary{color:var(--brand);background:var(--soft)}.screen{display:none}.screen.active{display:block}.results{padding:44px 48px}.result-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}.result-head h1{font-size:38px}.saved{padding:7px 11px;border-radius:999px;color:var(--good);background:#eaf8f2;font-size:12px}.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:25px}.metric{padding:20px;border:1px solid var(--line);border-radius:15px;background:#fcfcfe}.metric span{display:block;margin-bottom:5px;color:var(--muted);font-size:12px}.metric strong{font-size:28px}.result-table{margin-top:18px;border:1px solid var(--line);border-radius:15px;overflow:hidden}.result-row{display:flex;justify-content:space-between;gap:16px;padding:12px 16px;border-bottom:1px solid #ededf3}.result-row:last-child{border-bottom:0}.result-row span{color:var(--muted)}.actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-top:24px}.actions .primary{width:auto}.reference{margin-top:25px;color:#858a99;font-size:12px}.reference a{color:var(--brand)}
+    @media(max-width:700px){.header,.form,.results{padding:30px 24px}.poms-item{grid-template-columns:1fr}.identity,.metric-grid{grid-template-columns:1fr}.slider-line{grid-template-columns:54px 1fr 54px}.likert{gap:4px}.likert label{font-size:11px;padding:2px}.result-head{flex-direction:column}}
+    @media(max-width:430px){.app{width:calc(100% - 16px);padding-top:12px}.header,.form,.results{padding-left:18px;padding-right:18px}.likert label{min-height:44px}.scale-help{display:none}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar"><div class="brand"><div class="mark">问</div><span>主观疲劳问卷</span></div><a class="home" href="index.html">← 返回实验平台</a></header>
+
+    <section class="panel screen active" id="formScreen">
+      <div class="header"><div class="eyebrow">VAS × PROFILE OF MOOD STATES</div><h1>请根据此刻的真实感受作答</h1><p class="lead">答案没有对错。请以当前这一刻的感受为准，不要回顾之前的状态，也不要预测之后的表现。</p>
+        <div class="identity"><div><span>被试编号</span><strong id="participantText">—</strong></div><div><span>本次问卷项目编号</span><strong id="itemText">—</strong></div></div>
+      </div>
+      <form class="form" id="questionnaireForm">
+        <section class="section"><div class="section-head"><h2>视觉模拟量表（VAS）</h2><p>请拖动滑杆标记此刻感受。0表示完全没有，100表示极其强烈；每题都需要主动操作一次。</p></div><div class="vas-list" id="vasList"></div></section>
+        <section class="section"><div class="section-head"><h2>POMS 疲劳分量表</h2><p>请评价下列词语在多大程度上符合你此刻的状态。</p></div><div class="poms-list" id="pomsList"></div><div class="scale-help"><span>1＝完全不符合（Not at all）</span><span>5＝极其符合（Extremely）</span></div></section>
+        <div class="notice">提交后，本次回答将以独立记录保存到当前浏览器，并关联至上方被试编号及问卷项目编号。</div><div class="error" id="formError" role="alert"></div>
+        <button class="primary" type="submit" id="submitButton">提交本次问卷</button>
+        <div class="reference">VAS精神疲劳测量参考：<a href="https://doi.org/10.1080/00223980.2019.1611530" target="_blank" rel="noreferrer">Smith et al. (2019)</a>。</div>
+      </form>
+    </section>
+
+    <section class="panel screen" id="resultScreen">
+      <div class="results"><div class="result-head"><div><div class="eyebrow">QUESTIONNAIRE COMPLETE</div><h1>问卷已提交</h1><p class="lead" id="resultMeta"></p></div><div class="saved" id="saveStatus">正在保存…</div></div>
+        <div class="metric-grid"><div class="metric"><span>精神疲劳 VAS</span><strong id="mentalResult">—</strong></div><div class="metric"><span>任务动机 VAS</span><strong id="motivationResult">—</strong></div><div class="metric"><span>POMS 疲劳总分</span><strong id="pomsSumResult">—</strong></div></div>
+        <div class="result-table" id="resultTable"></div>
+        <div class="actions"><button class="secondary" id="downloadJson" type="button">导出 JSON</button><button class="secondary" id="downloadCsv" type="button">导出 CSV</button><button class="primary" id="dashboardButton" type="button">返回实验平台</button></div>
+      </div>
+    </section>
+  </main>
+  <script src="app-storage.js"></script>
+  <script>
+    'use strict';
+    const $=id=>document.getElementById(id);
+    const VAS_ITEMS=[
+      {key:'mentalFatigue',zh:'你现在感觉精神疲劳的程度如何？',en:'How mentally fatigued do you feel right now?',low:'完全不疲劳',high:'极其疲劳'},
+      {key:'motivation',zh:'你完成下一个任务的动机有多强？',en:'How motivated are you to perform the next task?',low:'完全没有动力',high:'极其有动力'},
+      {key:'boredom',zh:'你现在感觉有多无聊？',en:'How bored do you feel?',low:'完全不无聊',high:'极其无聊'},
+      {key:'physicalFatigue',zh:'你现在感觉身体疲劳的程度如何？',en:'How physically fatigued do you feel?',low:'完全不疲劳',high:'极其疲劳'}
+    ];
+    const POMS_ITEMS=[
+      {key:'exhausted',zh:'精疲力竭',en:'Exhausted'},
+      {key:'sleepy',zh:'困倦',en:'Sleepy'},
+      {key:'tired',zh:'疲惫',en:'Tired'},
+      {key:'wornOut',zh:'筋疲力尽',en:'Worn-out'}
+    ];
+    const query=new URLSearchParams(location.search),participantId=query.get('participant')||'',testItemId=query.get('item')||'';
+    const touchedVas=new Set();let currentRun=null;const startedAt=new Date().toISOString();
+    $('participantText').textContent=participantId||'未指定';$('itemText').textContent=testItemId||'未指定';
+
+    function esc(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
+    function renderQuestions(){
+      $('vasList').innerHTML=VAS_ITEMS.map(item=>`<article class="vas-item"><div class="question">${esc(item.zh)}</div><div class="english">${esc(item.en)}</div><div class="slider-line"><span class="anchor">${esc(item.low)}</span><div class="slider-wrap"><output class="score" id="${item.key}Output">尚未作答</output><input type="range" id="${item.key}" min="0" max="100" step="1" value="50" aria-label="${esc(item.zh)}"><div class="scale-numbers"><span>0</span><span>50</span><span>100</span></div></div><span class="anchor">${esc(item.high)}</span></div></article>`).join('');
+      $('pomsList').innerHTML=POMS_ITEMS.map(item=>`<article class="poms-item"><div class="poms-word"><strong>${esc(item.zh)}</strong><span>${esc(item.en)}</span></div><div class="likert">${[1,2,3,4,5].map(score=>`<label><input type="radio" name="${item.key}" value="${score}"><span>${score}</span></label>`).join('')}</div></article>`).join('');
+      VAS_ITEMS.forEach(item=>{$(item.key).addEventListener('input',()=>{touchedVas.add(item.key);const output=$(item.key+'Output');output.value=$(item.key).value;output.classList.add('answered');$('formError').textContent=''})});
+      $('pomsList').addEventListener('change',()=>{$('formError').textContent=''});
+    }
+    renderQuestions();
+
+    function collectResponses(){
+      if(!participantId||!testItemId)throw new Error('缺少被试编号或问卷项目编号，请返回实验平台后重新进入。');
+      if(touchedVas.size!==VAS_ITEMS.length)throw new Error('请拖动每一道VAS滑杆后再提交。');
+      const formData=new FormData($('questionnaireForm'));
+      const vas=Object.fromEntries(VAS_ITEMS.map(item=>[item.key,Number($(item.key).value)]));
+      const pomsItems={};
+      for(const item of POMS_ITEMS){const value=formData.get(item.key);if(value===null)throw new Error('请完成全部POMS条目。');pomsItems[item.key]=Number(value)}
+      const pomsValues=Object.values(pomsItems),pomsSum=pomsValues.reduce((sum,value)=>sum+value,0);
+      return{vas,poms:{items:pomsItems,sum:pomsSum,mean:pomsSum/pomsValues.length}};
+    }
+
+    $('questionnaireForm').addEventListener('submit',async event=>{
+      event.preventDefault();let responses;
+      try{responses=collectResponses()}catch(error){$('formError').textContent=error.message;return}
+      $('submitButton').disabled=true;const completedAt=new Date().toISOString();
+      currentRun={testType:'questionnaire',participantId,testItemId,startedAt,completedAt,aborted:false,config:{vasRange:[0,100],vasStep:1,pomsRange:[1,5]},responses,summary:{...responses,durationSeconds:Math.round((new Date(completedAt)-new Date(startedAt))/1000)}};
+      renderResult();document.querySelectorAll('.screen').forEach(screen=>screen.classList.toggle('active',screen.id==='resultScreen'));window.scrollTo({top:0,behavior:'instant'});
+      try{currentRun=await ExperimentStore.saveRun(currentRun);$('saveStatus').textContent='已保存到本机实验记录'}catch(error){$('saveStatus').textContent='自动保存失败，请立即导出';alert(`自动保存失败：${error.message}`)}
+    });
+
+    function renderResult(){
+      const {vas,poms}=currentRun.responses;$('mentalResult').textContent=vas.mentalFatigue;$('motivationResult').textContent=vas.motivation;$('pomsSumResult').textContent=`${poms.sum} / 20`;
+      $('resultMeta').textContent=`被试 ${participantId} · 项目 ${testItemId} · ${new Date(currentRun.completedAt).toLocaleString('zh-CN')}`;
+      const rows=[...VAS_ITEMS.map(item=>[`${item.zh}（${item.en}）`,`${vas[item.key]} / 100`]),...POMS_ITEMS.map(item=>[`${item.zh}（${item.en}）`,`${poms.items[item.key]} / 5`]),['POMS疲劳平均分',poms.mean.toFixed(2)]];
+      $('resultTable').innerHTML=rows.map(row=>`<div class="result-row"><span>${esc(row[0])}</span><strong>${esc(row[1])}</strong></div>`).join('');
+    }
+    $('downloadJson').addEventListener('click',()=>currentRun&&ExperimentStore.downloadRunJson(currentRun));
+    $('downloadCsv').addEventListener('click',()=>currentRun&&ExperimentStore.downloadRunCsv(currentRun));
+    $('dashboardButton').addEventListener('click',()=>location.href='index.html');
+  </script>
+</body>
+</html>

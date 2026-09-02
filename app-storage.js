@@ -227,6 +227,38 @@
     return csvRows.map(row => row.map(quote).join(',')).join('\r\n');
   }
 
+  function questionnaireRunToCsv(run) {
+    const profile = run.participantProfile || {};
+    const responses = run.responses || {};
+    const vas = responses.vas || {};
+    const poms = responses.poms || { items: {} };
+    const pomsItems = poms.items || {};
+    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '运行ID', '测试类型', '完成时间', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
+    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runId, '主观疲劳问卷', run.completedAt, run.aborted ? 1 : 0, 1, 1, 'VAS＋POMS'];
+    const responseHeaders = ['量表', '条目代码', '中文条目', '英文原词／原句', '得分', '量表最小值', '量表最大值'];
+    const responseRows = [
+      ['VAS', 'mentalFatigue', '你现在感觉精神疲劳的程度如何？', 'How mentally fatigued do you feel right now?', vas.mentalFatigue ?? '', 0, 100],
+      ['VAS', 'motivation', '你完成下一个任务的动机有多强？', 'How motivated are you to perform the next task?', vas.motivation ?? '', 0, 100],
+      ['VAS', 'boredom', '你现在感觉有多无聊？', 'How bored do you feel?', vas.boredom ?? '', 0, 100],
+      ['VAS', 'physicalFatigue', '你现在感觉身体疲劳的程度如何？', 'How physically fatigued do you feel?', vas.physicalFatigue ?? '', 0, 100],
+      ['POMS疲劳', 'exhausted', '精疲力竭', 'Exhausted', pomsItems.exhausted ?? '', 1, 5],
+      ['POMS疲劳', 'sleepy', '困倦', 'Sleepy', pomsItems.sleepy ?? '', 1, 5],
+      ['POMS疲劳', 'tired', '疲惫', 'Tired', pomsItems.tired ?? '', 1, 5],
+      ['POMS疲劳', 'wornOut', '筋疲力尽', 'Worn-out', pomsItems.wornOut ?? '', 1, 5]
+    ];
+    const summaryRows = [
+      ['POMS疲劳总分', poms.sum ?? '', '4个条目相加，范围4–20'],
+      ['POMS疲劳平均分', metric(poms.mean), '4个条目平均，范围1–5'],
+      ['填写用时_秒', run.summary?.durationSeconds ?? '', '从问卷页面载入到提交']
+    ];
+    const csvRows = [
+      ['测试信息'], infoHeaders, infoRow, [],
+      ['问卷原始作答'], responseHeaders, ...responseRows, [],
+      ['统计汇总'], ['指标', '数值', '说明'], ...summaryRows
+    ];
+    return csvRows.map(row => row.map(quote).join(',')).join('\r\n');
+  }
+
   function safeFilePart(value) {
     return String(value || 'unknown').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 50);
   }
@@ -250,7 +282,7 @@
 
   function downloadRunCsv(run) {
     const name = `${safeFilePart(run.participantId)}_${safeFilePart(run.testItemId)}_${run.testType}.csv`;
-    const content = run.testType === 'pvtb' ? pvtRunToCsv(run) : runsToCsv([run]);
+    const content = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : runsToCsv([run]);
     download(name, content, 'text/csv;charset=utf-8');
   }
 
@@ -261,8 +293,9 @@
 
   function downloadAllCsv(runs) {
     const content = runs.map((run, index) => {
-      const runCsv = run.testType === 'pvtb' ? pvtRunToCsv(run) : runsToCsv([run]);
-      return `${['实验记录', index + 1, run.participantId, run.testItemId, run.testType === 'pvtb' ? 'PVT-B' : 'Stroop-Flanker'].map(quote).join(',')}\r\n${runCsv}`;
+      const runCsv = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : runsToCsv([run]);
+      const typeName = run.testType === 'pvtb' ? 'PVT-B' : run.testType === 'questionnaire' ? '主观疲劳问卷' : 'Stroop-Flanker';
+      return `${['实验记录', index + 1, run.participantId, run.testItemId, typeName].map(quote).join(',')}\r\n${runCsv}`;
     }).join('\r\n\r\n');
     download(`全部实验结果_${new Date().toISOString().slice(0, 10)}.csv`, content, 'text/csv;charset=utf-8');
   }
@@ -280,6 +313,7 @@
     rowsForRun,
     runsToCsv,
     pvtRunToCsv,
+    questionnaireRunToCsv,
     downloadRunJson,
     downloadRunCsv,
     downloadAllJson,
