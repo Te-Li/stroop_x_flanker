@@ -183,6 +183,13 @@
     return Math.sqrt(variance);
   }
 
+  function slowestFraction(values, fraction = 0.1) {
+    if (!values.length) return { count: 0, mean: null };
+    const count = Math.max(1, Math.ceil(values.length * fraction));
+    const selected = [...values].sort((a, b) => b - a).slice(0, count);
+    return { count, mean: mean(selected) };
+  }
+
   function metric(value) {
     return value == null || !Number.isFinite(value) ? '' : Math.round(value * 100) / 100;
   }
@@ -193,6 +200,9 @@
     const validRts = trials.filter(trial => trial.validResponse && Number.isFinite(trial.rtMs)).map(trial => trial.rtMs);
     const rtsAtOrBelow500 = validRts.filter(rt => rt <= 500);
     const lapses = validRts.filter(rt => rt >= PVT_LAPSE_THRESHOLD_MS).length;
+    const lapseRate = validRts.length ? lapses / validRts.length : null;
+    const meanResponseSpeed = validRts.length ? mean(validRts.map(rt => 1000 / rt)) : null;
+    const slowest10 = slowestFraction(validRts);
     const falseStarts = trials.filter(trial => trial.falseStart).length;
     const omissions = trials.filter(trial => trial.outcome === 'omission').length;
     const performanceScore = trials.length ? Math.max(0, 1 - ((lapses + falseStarts) / trials.length)) * 100 : null;
@@ -211,6 +221,9 @@
     const summaryRows = [
       ['总记录事件', trials.length, '全部已完成并计入本次测试的事件'],
       ['有效反应数', validRts.length, '不含抢答和遗漏'],
+      ['平均反应速度_1/s', metric(meanResponseSpeed), '全部有效反应的1000／RT(ms)取平均；建议作为主要指标'],
+      ['迟缓比例_%', metric(lapseRate === null ? null : lapseRate * 100), `反应时≥${PVT_LAPSE_THRESHOLD_MS} ms的有效反应数／全部有效反应数`],
+      ['最慢10%反应均值_ms', metric(slowest10.mean), `有效反应时降序取前ceil(n×10%)条；本次纳入${slowest10.count}条`],
       ['平均反应时_ms', metric(mean(validRts)), '基于全部有效反应'],
       ['≤500_ms有效反应数', rtsAtOrBelow500.length, '用于剔除>500 ms后的均值'],
       ['剔除>500_ms后的平均反应时_ms', metric(mean(rtsAtOrBelow500)), '仅纳入反应时≤500 ms的有效反应'],

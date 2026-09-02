@@ -180,8 +180,11 @@
 
     function metric(run) {
       if (run.testType === 'pvtb') {
-        const lapses = (run.trials || []).filter(trial => trial.validResponse && Number.isFinite(trial.rtMs) && trial.rtMs >= 355).length;
-        return `平均RT ${Math.round(run.summary.meanRtMs || 0)} ms · 迟缓 ${lapses}`;
+        const validRts = (run.trials || []).filter(trial => trial.validResponse && Number.isFinite(trial.rtMs)).map(trial => trial.rtMs);
+        const lapses = validRts.filter(rt => rt >= 355).length;
+        const speed = validRts.length ? validRts.reduce((sum, rt) => sum + 1000 / rt, 0) / validRts.length : null;
+        const lapseRate = validRts.length ? `${(lapses / validRts.length * 100).toFixed(1)}%` : '—';
+        return `平均1/RT ${speed===null?'—':speed.toFixed(3)} 1/s · 迟缓 ${lapses}（${lapseRate}）`;
       }
       if (run.testType === 'questionnaire') return `精神疲劳VAS ${run.responses?.vas?.mentalFatigue ?? '—'} · POMS ${run.responses?.poms?.sum ?? '—'}/20`;
       return `正确率 ${((run.summary.overall.accuracy || 0) * 100).toFixed(1)}% · ${run.trials.length}题`;
