@@ -5,6 +5,7 @@
   const DB_VERSION = 2;
   const STORE_NAME = 'runs';
   const PARTICIPANT_STORE = 'participants';
+  const PVT_LAPSE_THRESHOLD_MS = 355;
 
   function openDb() {
     return new Promise((resolve, reject) => {
@@ -191,7 +192,7 @@
     const trials = run.trials || [];
     const validRts = trials.filter(trial => trial.validResponse && Number.isFinite(trial.rtMs)).map(trial => trial.rtMs);
     const rtsAtOrBelow500 = validRts.filter(rt => rt <= 500);
-    const lapses = trials.filter(trial => trial.lapse).length;
+    const lapses = validRts.filter(rt => rt >= PVT_LAPSE_THRESHOLD_MS).length;
     const falseStarts = trials.filter(trial => trial.falseStart).length;
     const omissions = trials.filter(trial => trial.outcome === 'omission').length;
     const performanceScore = trials.length ? Math.max(0, 1 - ((lapses + falseStarts) / trials.length)) * 100 : null;
@@ -199,11 +200,14 @@
     const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '运行ID', '测试类型', '完成时间', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
     const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runId, 'PVT-B', run.completedAt, run.aborted ? 1 : 0, 1, 1, 'PVT-B'];
     const trialHeaders = ['试次序号', '实际反应', '作答方式', '有效反应', '超时', '反应时_ms', '随机等待_ms', 'PVT结果', '迟缓', '抢答', '刺激呈现时间', '作答时间'];
-    const trialRows = trials.map(trial => [
-      trial.trialIndex, trial.response || '', trial.responseMethod || '', trial.validResponse ? 1 : 0,
-      trial.outcome === 'omission' ? 1 : 0, trial.rtMs ?? '', trial.waitMs ?? '', trial.outcome || '',
-      trial.lapse ? 1 : 0, trial.falseStart ? 1 : 0, trial.stimulusAt || '', trial.responseAt || ''
-    ]);
+    const trialRows = trials.map(trial => {
+      const isLapse = Boolean(trial.validResponse && Number.isFinite(trial.rtMs) && trial.rtMs >= PVT_LAPSE_THRESHOLD_MS);
+      return [
+        trial.trialIndex, trial.response || '', trial.responseMethod || '', trial.validResponse ? 1 : 0,
+        trial.outcome === 'omission' ? 1 : 0, trial.rtMs ?? '', trial.waitMs ?? '', isLapse ? 'lapse' : (trial.outcome || ''),
+        isLapse ? 1 : 0, trial.falseStart ? 1 : 0, trial.stimulusAt || '', trial.responseAt || ''
+      ];
+    });
     const summaryRows = [
       ['总记录事件', trials.length, '全部已完成并计入本次测试的事件'],
       ['有效反应数', validRts.length, '不含抢答和遗漏'],
@@ -214,7 +218,7 @@
       ['反应时标准差_ms', metric(sampleStandardDeviation(validRts)), '样本标准差，基于全部有效反应'],
       ['最快反应时_ms', validRts.length ? Math.min(...validRts) : '', '基于全部有效反应'],
       ['最慢反应时_ms', validRts.length ? Math.max(...validRts) : '', '基于全部有效反应'],
-      ['迟缓数', lapses, '反应时≥500 ms'],
+      ['迟缓数', lapses, `反应时≥${PVT_LAPSE_THRESHOLD_MS} ms（PVT-B阈值）`],
       ['抢答数', falseStarts, '刺激前响应或反应时<100 ms'],
       ['遗漏数', omissions, '刺激后超过单题反应窗口未响应'],
       ['综合表现分_%', metric(performanceScore), '100 × [1－(迟缓数＋抢答数)／总记录事件]']

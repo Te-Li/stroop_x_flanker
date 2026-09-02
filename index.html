@@ -55,7 +55,7 @@
       <article class="test-card pvt">
         <div class="test-icon">PVT</div><h2>PVT-B警觉性测试</h2>
         <p>在黄色计时器出现后尽快响应，用于测量持续注意、反应迟缓与抢答。</p>
-        <div class="facts"><span class="fact">默认3分钟</span><span class="fact">随机等待0–3秒</span><span class="fact">≥500 ms为迟缓</span></div>
+        <div class="facts"><span class="fact">默认3分钟</span><span class="fact">随机等待0–3秒</span><span class="fact">≥355 ms为迟缓</span></div>
         <div class="test-actions"><button class="practice-launch" data-target="pvtb.html">练习模式</button><button class="launch" data-target="pvtb.html">正式测试</button></div>
       </article>
       <article class="test-card mix">
@@ -179,7 +179,10 @@
     }
 
     function metric(run) {
-      if (run.testType === 'pvtb') return `平均RT ${Math.round(run.summary.meanRtMs || 0)} ms · 迟缓 ${run.summary.lapses}`;
+      if (run.testType === 'pvtb') {
+        const lapses = (run.trials || []).filter(trial => trial.validResponse && Number.isFinite(trial.rtMs) && trial.rtMs >= 355).length;
+        return `平均RT ${Math.round(run.summary.meanRtMs || 0)} ms · 迟缓 ${lapses}`;
+      }
       if (run.testType === 'questionnaire') return `精神疲劳VAS ${run.responses?.vas?.mentalFatigue ?? '—'} · POMS ${run.responses?.poms?.sum ?? '—'}/20`;
       return `正确率 ${((run.summary.overall.accuracy || 0) * 100).toFixed(1)}% · ${run.trials.length}题`;
     }

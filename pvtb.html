@@ -22,13 +22,13 @@
     <section class="panel screen active" id="setupScreen">
       <div class="setup">
         <div class="intro"><div class="eyebrow">BRIEF PSYCHOMOTOR VIGILANCE TEST</div><h1>看见计时器，<br>立即响应</h1><p class="lead">在红色框内出现黄色计时器后尽快按空格键或点击响应按钮；不要提前猜测。</p>
-          <div class="protocol"><div class="protocol-item"><div class="num">3′</div><div><b>标准时长</b><span>PVT-B默认持续3分钟。</span></div></div><div class="protocol-item"><div class="num">0–3</div><div><b>随机等待</b><span>1秒反馈后随机等待0–3秒。</span></div></div><div class="protocol-item"><div class="num">500</div><div><b>迟缓阈值</b><span>反应时≥500 ms计为一次lapse。</span></div></div></div>
+          <div class="protocol"><div class="protocol-item"><div class="num">3′</div><div><b>标准时长</b><span>PVT-B默认持续3分钟。</span></div></div><div class="protocol-item"><div class="num">0–3</div><div><b>随机等待</b><span>1秒反馈后随机等待0–3秒。</span></div></div><div class="protocol-item"><div class="num">355</div><div><b>迟缓阈值</b><span>反应时≥355 ms计为一次lapse。</span></div></div></div>
         </div>
         <form class="settings" id="settingsForm"><h2 id="settingsTitle">本次PVT-B设置</h2><p class="sub" id="settingsSub">编号用于区分同一被试的多次测试记录。</p><div class="practice-banner" id="practiceBanner">练习模式：无需填写受试者资料，结果不会保存或计入正式成绩。</div>
           <div id="identityFields"><div class="field"><label for="participantId">被试编号</label><input id="participantId" maxlength="40" required placeholder="例如：P001"></div>
           <div class="field"><label for="testItemId">测试项目编号</label><input id="testItemId" maxlength="40" required placeholder="例如：PVT-01"></div></div>
           <div class="field"><label for="durationMinutes">测试时长（分钟）</label><input id="durationMinutes" type="number" min="0.05" max="30" step="0.05" value="3" required></div>
-          <div class="field"><label>研究参数</label><input class="readonly" value="等待0–3000 ms；迟缓≥500 ms；抢答<100 ms" readonly></div>
+          <div class="field"><label>研究参数</label><input class="readonly" value="等待0–3000 ms；迟缓≥355 ms；抢答<100 ms" readonly></div>
           <div class="note">推荐使用空格键以获得更稳定的反应时；鼠标点击同样会被记录，并在导出数据中标明作答方式。</div>
           <button class="primary" type="submit">阅读说明并开始</button>
         </form>
@@ -37,7 +37,7 @@
 
     <section class="panel screen" id="instructionScreen">
       <div class="instruction"><div class="eyebrow">实验说明</div><h1>只在黄色计时器出现后响应</h1>
-        <div class="instruction-list"><div class="instruction-card"><b>等待阶段</b><p>红色框保持可见，但内部没有黄色数字。此时不要按键或点击；提前响应将记为抢答。</p></div><div class="instruction-card"><b>刺激阶段</b><p>黄色计时器出现后，立即按空格键或点击“立即响应”。计时器会显示本次反应时间。</p></div><div class="instruction-card"><b>判定标准</b><p>刺激后不足100 ms的响应按抢答处理；达到或超过500 ms的有效响应记为反应迟缓。</p></div></div>
+        <div class="instruction-list"><div class="instruction-card"><b>等待阶段</b><p>红色框保持可见，但内部没有黄色数字。此时不要按键或点击；提前响应将记为抢答。</p></div><div class="instruction-card"><b>刺激阶段</b><p>黄色计时器出现后，立即按空格键或点击“立即响应”。计时器会显示本次反应时间。</p></div><div class="instruction-card"><b>判定标准</b><p>刺激后不足100 ms的响应按抢答处理；达到或超过355 ms的有效响应记为反应迟缓。</p></div></div>
         <div class="actions"><button class="secondary" id="backButton">返回设置</button><button class="primary" id="beginButton">开始PVT-B</button></div>
         <div class="reference">实现依据：<a href="https://doi.org/10.1016/j.actaastro.2011.07.015" target="_blank" rel="noreferrer">Basner, Mollicone, & Dinges (2011)</a>；参数解释参考 <a href="https://www.psytoolkit.org/library/pvtb.html" target="_blank" rel="noreferrer">PsyToolkit PVT-B</a>。</div>
       </div>
@@ -69,7 +69,7 @@
     function params(){const q=new URLSearchParams(location.search);return{participant:q.get('participant')||'',item:q.get('item')||'',practice:q.get('practice')==='1'}}
     const initial=params(),isPractice=initial.practice;$('participantId').value=initial.participant;$('testItemId').value=initial.item;
     if(isPractice){$('identityFields').hidden=true;$('participantId').required=false;$('testItemId').required=false;$('durationMinutes').value='1';$('settingsTitle').textContent='PVT-B练习设置';$('settingsSub').textContent='练习默认1分钟，可自行调整。';$('practiceBanner').classList.add('active');$('downloadJson').hidden=true;$('downloadCsv').hidden=true;$('repeatButton').textContent='再练习一次'}
-    $('settingsForm').addEventListener('submit',event=>{event.preventDefault();config={participantId:isPractice?'练习':$('participantId').value.trim(),testItemId:isPractice?'PVT-B练习':$('testItemId').value.trim(),practice:isPractice,durationMinutes:Number($('durationMinutes').value),randomWaitMaxMs:3000,feedbackMs:1000,lapseThresholdMs:500,falseStartThresholdMs:100,responseWindowMs:30000};if((!isPractice&&(!config.participantId||!config.testItemId))||config.durationMinutes<.05||config.durationMinutes>30){alert(isPractice?'请检查练习时长。':'请填写被试编号、测试项目编号和有效时长。');return}showScreen('instructionScreen')});
+    $('settingsForm').addEventListener('submit',event=>{event.preventDefault();config={participantId:isPractice?'练习':$('participantId').value.trim(),testItemId:isPractice?'PVT-B练习':$('testItemId').value.trim(),practice:isPractice,durationMinutes:Number($('durationMinutes').value),randomWaitMaxMs:3000,feedbackMs:1000,lapseThresholdMs:355,falseStartThresholdMs:100,responseWindowMs:30000};if((!isPractice&&(!config.participantId||!config.testItemId))||config.durationMinutes<.05||config.durationMinutes>30){alert(isPractice?'请检查练习时长。':'请填写被试编号、测试项目编号和有效时长。');return}showScreen('instructionScreen')});
     $('backButton').addEventListener('click',()=>showScreen('setupScreen'));
     $('beginButton').addEventListener('click',()=>runCue(3));
     function runCue(value){showScreen('testScreen');clearTimers();responseAllowed=false;targetVisible=false;feedbackActive=true;$('taskPrompt').textContent='PVT-B即将开始';$('counter').className='counter';$('counter').textContent=value;$('responseButton').disabled=true;$('phaseText').textContent='请把手指放在空格键或鼠标上';$('clockText').textContent=formatClock(config.durationMinutes*60000);if(value>1)phaseTimer=setTimeout(()=>runCue(value-1),1000);else phaseTimer=setTimeout(startTest,1000)}
