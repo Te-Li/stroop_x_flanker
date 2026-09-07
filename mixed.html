@@ -555,6 +555,8 @@
 
     const initialQuery = new URLSearchParams(location.search);
     const isPractice = initialQuery.get('practice') === '1';
+    const isWorkflow = initialQuery.get('workflow') === '1';
+    const workflowMeta = { sessionId: initialQuery.get('session') || '', stepId: initialQuery.get('step') || '', conditionCode: initialQuery.get('condition') || '', conditionOrder: Number(initialQuery.get('order')) || null };
     $('participantId').value = initialQuery.get('participant') || '';
     $('testItemId').value = initialQuery.get('item') || '';
     if (isPractice) {
@@ -723,6 +725,13 @@
         alert(error.message);
       }
     });
+
+    if (isWorkflow) {
+      config = readConfig();
+      $('backToSetup').hidden = true;
+      $('restartTest').textContent = '继续固定实验流程';
+      showScreen('instructionScreen');
+    }
 
     $('backToSetup').addEventListener('click', () => showScreen('setupScreen'));
 
@@ -987,13 +996,15 @@
       $('timeoutCount').textContent = all.timeout;
       const completedAt = new Date().toISOString();
       $('resultTitle').textContent = isPractice ? '练习完成' : '测试完成';
-      $('resultMeta').textContent = isPractice ? `练习反馈 · 完成 ${finishedRoundCount} / ${blocks.length} 轮 · 不保存、不计入正式成绩` : `被试 ${config.participantId} · 项目 ${config.testItemId} · ${new Date(completedAt).toLocaleString('zh-CN')} · 完成 ${finishedRoundCount} / ${blocks.length} 轮 · ${all.completed} 个试次`;
+      $('resultMeta').textContent = isPractice ? `练习反馈 · 完成 ${finishedRoundCount} / ${blocks.length} 轮 · 不保存、不计入正式成绩` : `被试 ${config.participantId} · 项目 ${config.testItemId}${isWorkflow ? ` · 条件 ${workflowMeta.conditionCode}` : ''} · ${new Date(completedAt).toLocaleString('zh-CN')} · 完成 ${finishedRoundCount} / ${blocks.length} 轮 · ${all.completed} 个试次`;
       $('completionState').textContent = isPractice ? '练习模式 · 未保存' : aborted ? '测试已提前结束' : `已完成全部 ${blocks.length} 轮`;
       const visibleBlocks = aborted ? blocks.slice(0, Math.max(0, currentBlockIndex + 1)) : blocks;
       $('summaryGrid').innerHTML = visibleBlocks.map(roundSummaryCard).join('');
       showScreen('resultScreen');
       currentRun = {
         testType: 'mixed', participantId: config.participantId, testItemId: config.testItemId,
+        conditionCode: workflowMeta.conditionCode, conditionOrder: workflowMeta.conditionOrder,
+        sessionId: workflowMeta.sessionId, workflowStepId: workflowMeta.stepId,
         startedAt: testStartedAt, completedAt, aborted, config, rounds: blocks,
         summary: {
           overall: all,
@@ -1006,7 +1017,11 @@
       if (isPractice) return;
       try {
         currentRun = await ExperimentStore.saveRun(currentRun);
-        $('completionState').textContent = `${aborted ? '提前结束' : '全部完成'} · 已保存`;
+        if (isWorkflow) {
+          ExperimentStore.downloadRunCsv(currentRun);
+          if (!aborted) await ExperimentStore.completeSessionStep(workflowMeta.sessionId, workflowMeta.stepId, currentRun.runId);
+          $('completionState').textContent = aborted ? '提前结束 · 已保存，请返回流程重做本项' : '全部完成 · 已保存 · CSV下载已触发';
+        } else $('completionState').textContent = `${aborted ? '提前结束' : '全部完成'} · 已保存`;
       } catch (error) {
         $('completionState').textContent = '自动保存失败，请立即导出';
         alert(`自动保存失败：${error.message}`);
@@ -1057,7 +1072,7 @@
 
     $('restartTest').addEventListener('click', () => {
       clearAllTimers();
-      location.href = 'index.html';
+      location.href = isWorkflow ? `workflow.html?session=${encodeURIComponent(workflowMeta.sessionId)}` : 'index.html';
     });
   </script>
 </body>

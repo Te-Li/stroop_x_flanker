@@ -52,7 +52,7 @@
       {key:'tired',zh:'疲惫',en:'Tired'},
       {key:'wornOut',zh:'筋疲力尽',en:'Worn-out'}
     ];
-    const query=new URLSearchParams(location.search),participantId=query.get('participant')||'',testItemId=query.get('item')||'';
+    const query=new URLSearchParams(location.search),participantId=query.get('participant')||'',testItemId=query.get('item')||'',isWorkflow=query.get('workflow')==='1',workflowMeta={sessionId:query.get('session')||'',stepId:query.get('step')||'',conditionCode:query.get('condition')||'',conditionOrder:Number(query.get('order'))||null};
     const touchedVas=new Set();let currentRun=null;const startedAt=new Date().toISOString();
     $('participantText').textContent=participantId||'未指定';$('itemText').textContent=testItemId||'未指定';
 
@@ -80,20 +80,20 @@
       event.preventDefault();let responses;
       try{responses=collectResponses()}catch(error){$('formError').textContent=error.message;return}
       $('submitButton').disabled=true;const completedAt=new Date().toISOString();
-      currentRun={testType:'questionnaire',participantId,testItemId,startedAt,completedAt,aborted:false,config:{vasRange:[0,100],vasStep:1,pomsRange:[1,5]},responses,summary:{...responses,durationSeconds:Math.round((new Date(completedAt)-new Date(startedAt))/1000)}};
+      currentRun={testType:'questionnaire',participantId,testItemId,conditionCode:workflowMeta.conditionCode,conditionOrder:workflowMeta.conditionOrder,sessionId:workflowMeta.sessionId,workflowStepId:workflowMeta.stepId,startedAt,completedAt,aborted:false,config:{vasRange:[0,100],vasStep:1,pomsRange:[1,5]},responses,summary:{...responses,durationSeconds:Math.round((new Date(completedAt)-new Date(startedAt))/1000)}};
       renderResult();document.querySelectorAll('.screen').forEach(screen=>screen.classList.toggle('active',screen.id==='resultScreen'));window.scrollTo({top:0,behavior:'instant'});
-      try{currentRun=await ExperimentStore.saveRun(currentRun);$('saveStatus').textContent='已保存到本机实验记录'}catch(error){$('saveStatus').textContent='自动保存失败，请立即导出';alert(`自动保存失败：${error.message}`)}
+      try{currentRun=await ExperimentStore.saveRun(currentRun);if(isWorkflow){ExperimentStore.downloadRunCsv(currentRun);await ExperimentStore.completeSessionStep(workflowMeta.sessionId,workflowMeta.stepId,currentRun.runId);$('saveStatus').textContent='已保存 · CSV下载已触发';$('dashboardButton').textContent='继续固定实验流程'}else $('saveStatus').textContent='已保存到本机实验记录'}catch(error){$('saveStatus').textContent='自动保存失败，请立即导出';alert(`自动保存失败：${error.message}`)}
     });
 
     function renderResult(){
       const {vas,poms}=currentRun.responses;$('mentalResult').textContent=vas.mentalFatigue;$('motivationResult').textContent=vas.motivation;$('pomsSumResult').textContent=`${poms.sum} / 20`;
-      $('resultMeta').textContent=`被试 ${participantId} · 项目 ${testItemId} · ${new Date(currentRun.completedAt).toLocaleString('zh-CN')}`;
+      $('resultMeta').textContent=`被试 ${participantId} · 项目 ${testItemId}${isWorkflow?` · 条件 ${workflowMeta.conditionCode}`:''} · ${new Date(currentRun.completedAt).toLocaleString('zh-CN')}`;
       const rows=[...VAS_ITEMS.map(item=>[`${item.zh}（${item.en}）`,`${vas[item.key]} / 100`]),...POMS_ITEMS.map(item=>[`${item.zh}（${item.en}）`,`${poms.items[item.key]} / 5`]),['POMS疲劳平均分',poms.mean.toFixed(2)]];
       $('resultTable').innerHTML=rows.map(row=>`<div class="result-row"><span>${esc(row[0])}</span><strong>${esc(row[1])}</strong></div>`).join('');
     }
     $('downloadJson').addEventListener('click',()=>currentRun&&ExperimentStore.downloadRunJson(currentRun));
     $('downloadCsv').addEventListener('click',()=>currentRun&&ExperimentStore.downloadRunCsv(currentRun));
-    $('dashboardButton').addEventListener('click',()=>location.href='index.html');
+    $('dashboardButton').addEventListener('click',()=>location.href=isWorkflow?`workflow.html?session=${encodeURIComponent(workflowMeta.sessionId)}`:'index.html');
   </script>
 </body>
 </html>

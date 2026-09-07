@@ -2,9 +2,10 @@
   'use strict';
 
   const DB_NAME = 'cognitive-experiment-platform';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const STORE_NAME = 'runs';
   const PARTICIPANT_STORE = 'participants';
+  const SESSION_STORE = 'sessions';
   const PVT_LAPSE_THRESHOLD_MS = 355;
 
   function openDb() {
@@ -22,6 +23,12 @@
         if (!db.objectStoreNames.contains(PARTICIPANT_STORE)) {
           const participants = db.createObjectStore(PARTICIPANT_STORE, { keyPath: 'participantId' });
           participants.createIndex('updatedAt', 'updatedAt', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(SESSION_STORE)) {
+          const sessions = db.createObjectStore(SESSION_STORE, { keyPath: 'sessionId' });
+          sessions.createIndex('participantId', 'participantId', { unique: false });
+          sessions.createIndex('status', 'status', { unique: false });
+          sessions.createIndex('updatedAt', 'updatedAt', { unique: false });
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -77,6 +84,53 @@
     return withNamedStore(PARTICIPANT_STORE, 'readwrite', store => store.delete(String(participantId || '').trim()));
   }
 
+  function makeSessionId(participantId) {
+    const randomPart = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    return `visit_${participantId}_${Date.now()}_${randomPart}`;
+  }
+
+  async function saveSession(session) {
+    const now = new Date().toISOString();
+    const record = { ...session, sessionId: session.sessionId || makeSessionId(session.participantId), updatedAt: now };
+    await withNamedStore(SESSION_STORE, 'readwrite', store => store.put(record));
+    return record;
+  }
+
+  async function getSession(sessionId) {
+    return withNamedStore(SESSION_STORE, 'readonly', store => store.get(sessionId));
+  }
+
+  async function listSessions() {
+    const rows = await withNamedStore(SESSION_STORE, 'readonly', store => store.getAll());
+    return (rows || []).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  }
+
+  async function completeSessionStep(sessionId, stepId, runId = '') {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SESSION_STORE, 'readwrite');
+      const store = transaction.objectStore(SESSION_STORE);
+      const request = store.get(sessionId);
+      let updated;
+      request.onsuccess = () => {
+        const session = request.result;
+        if (!session) { transaction.abort(); return; }
+        const completedSteps = [...(session.completedSteps || [])];
+        if (!completedSteps.some(step => step.stepId === stepId)) {
+          completedSteps.push({ stepId, runId, completedAt: new Date().toISOString() });
+          session.currentStepIndex = Math.max(Number(session.currentStepIndex) || 0, completedSteps.length);
+        }
+        session.completedSteps = completedSteps;
+        session.updatedAt = new Date().toISOString();
+        updated = session;
+        store.put(session);
+      };
+      transaction.oncomplete = () => { db.close(); resolve(updated); };
+      transaction.onerror = () => { db.close(); reject(transaction.error); };
+      transaction.onabort = () => { db.close(); reject(transaction.error || new Error('到访流程不存在或更新失败')); };
+    });
+  }
+
   async function withStore(mode, action) {
     const db = await openDb();
     return new Promise((resolve, reject) => {
@@ -98,7 +152,7 @@
   async function saveRun(run) {
     const profile = run.participantProfile || await getParticipant(run.participantId);
     const record = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       ...run,
       participantProfile: profile ? normalizeParticipant(profile) : null,
       runId: run.runId || makeRunId(run.testType, run.participantId, run.testItemId),
@@ -131,7 +185,7 @@
 
   const CSV_HEADERS = [
     '被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注',
-    '测试项目编号', '运行ID', '测试类型', '完成时间', '是否提前结束',
+    '测试项目编号', '实验条件代码', '到访运行ID', '流程步骤', '运行ID', '测试类型', '完成时间', '是否提前结束',
     '总轮次序号', '任务内轮次', '任务', '试次序号', '任务内试次序号', '条件',
     '刺激', '正确反应', '实际反应', '作答方式', '正确', '超时', '反应时_ms',
     '随机等待_ms', 'PVT结果', 'PVT迟缓', 'PVT抢答', '刺激呈现时间', '作答时间'
@@ -142,7 +196,7 @@
     const identity = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || ''];
     if (run.testType === 'pvtb') {
       return (run.trials || []).map(trial => [
-        ...identity, run.testItemId, run.runId, 'PVT-B', run.completedAt, run.aborted ? 1 : 0,
+        ...identity, run.testItemId, run.conditionCode || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.completedAt, run.aborted ? 1 : 0,
         '', '', 'PVT-B', trial.trialIndex, '', '', '黄色计时器', '尽快响应',
         trial.response || '', trial.responseMethod || '', trial.validResponse ? 1 : 0,
         trial.outcome === 'omission' ? 1 : 0, trial.rtMs ?? '', trial.waitMs ?? '',
@@ -151,7 +205,7 @@
       ]);
     }
     return (run.trials || []).map(trial => [
-      ...identity, run.testItemId, run.runId, 'Stroop-Flanker', run.completedAt, run.aborted ? 1 : 0,
+      ...identity, run.testItemId, run.conditionCode || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'Stroop-Flanker', run.completedAt, run.aborted ? 1 : 0,
       trial.roundIndex, trial.taskRound, trial.type === 'stroop' ? 'Stroop' : 'Flanker',
       trial.index, trial.taskTrial, trial.congruent ? '一致' : '不一致',
       trial.type === 'stroop' ? `${trial.word}/${trial.ink}` : trial.arrows,
@@ -207,8 +261,8 @@
     const omissions = trials.filter(trial => trial.outcome === 'omission').length;
     const performanceScore = trials.length ? Math.max(0, 1 - ((lapses + falseStarts) / trials.length)) * 100 : null;
 
-    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '运行ID', '测试类型', '完成时间', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
-    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runId, 'PVT-B', run.completedAt, run.aborted ? 1 : 0, 1, 1, 'PVT-B'];
+    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '完成时间', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
+    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.completedAt, run.aborted ? 1 : 0, 1, 1, 'PVT-B'];
     const trialHeaders = ['试次序号', '实际反应', '作答方式', '有效反应', '超时', '反应时_ms', '随机等待_ms', 'PVT结果', '迟缓', '抢答', '刺激呈现时间', '作答时间'];
     const trialRows = trials.map(trial => {
       const isLapse = Boolean(trial.validResponse && Number.isFinite(trial.rtMs) && trial.rtMs >= PVT_LAPSE_THRESHOLD_MS);
@@ -250,8 +304,8 @@
     const vas = responses.vas || {};
     const poms = responses.poms || { items: {} };
     const pomsItems = poms.items || {};
-    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '运行ID', '测试类型', '完成时间', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
-    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runId, '主观疲劳问卷', run.completedAt, run.aborted ? 1 : 0, 1, 1, 'VAS＋POMS'];
+    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '完成时间', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
+    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, '主观疲劳问卷', run.completedAt, run.aborted ? 1 : 0, 1, 1, 'VAS＋POMS'];
     const responseHeaders = ['量表', '条目代码', '中文条目', '英文原词／原句', '得分', '量表最小值', '量表最大值'];
     const responseRows = [
       ['VAS', 'mentalFatigue', '你现在感觉精神疲劳的程度如何？', 'How mentally fatigued do you feel right now?', vas.mentalFatigue ?? '', 0, 100],
@@ -274,6 +328,13 @@
       ['统计汇总'], ['指标', '数值', '说明'], ...summaryRows
     ];
     return csvRows.map(row => row.map(quote).join(',')).join('\r\n');
+  }
+
+  function manualRunToCsv(run) {
+    const profile = run.participantProfile || {};
+    const headers = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '步骤类型', '计划时长_分钟', '开始时间', '完成时间', '运行ID'];
+    const row = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.manualType || '', run.plannedDurationMinutes ?? '', run.startedAt || '', run.completedAt || '', run.runId];
+    return [['手动确认步骤'], headers, row].map(csvRow => csvRow.map(quote).join(',')).join('\r\n');
   }
 
   function safeFilePart(value) {
@@ -299,19 +360,19 @@
 
   function downloadRunCsv(run) {
     const name = `${safeFilePart(run.participantId)}_${safeFilePart(run.testItemId)}_${run.testType}.csv`;
-    const content = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : runsToCsv([run]);
+    const content = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : run.testType === 'manual' ? manualRunToCsv(run) : runsToCsv([run]);
     download(name, content, 'text/csv;charset=utf-8');
   }
 
-  function downloadAllJson(runs, participants) {
-    const content = participants ? { schemaVersion: 2, exportedAt: new Date().toISOString(), participants, runs } : runs;
+  function downloadAllJson(runs, participants, sessions) {
+    const content = participants ? { schemaVersion: 3, exportedAt: new Date().toISOString(), participants, sessions: sessions || [], runs } : runs;
     download(`全部实验结果_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(content, null, 2), 'application/json;charset=utf-8');
   }
 
   function downloadAllCsv(runs) {
     const content = runs.map((run, index) => {
-      const runCsv = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : runsToCsv([run]);
-      const typeName = run.testType === 'pvtb' ? 'PVT-B' : run.testType === 'questionnaire' ? '主观疲劳问卷' : 'Stroop-Flanker';
+      const runCsv = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : run.testType === 'manual' ? manualRunToCsv(run) : runsToCsv([run]);
+      const typeName = run.testType === 'pvtb' ? 'PVT-B' : run.testType === 'questionnaire' ? '主观疲劳问卷' : run.testType === 'manual' ? '手动确认步骤' : 'Stroop-Flanker';
       return `${['实验记录', index + 1, run.participantId, run.testItemId, typeName].map(quote).join(',')}\r\n${runCsv}`;
     }).join('\r\n\r\n');
     download(`全部实验结果_${new Date().toISOString().slice(0, 10)}.csv`, content, 'text/csv;charset=utf-8');
@@ -322,6 +383,10 @@
     listParticipants,
     getParticipant,
     deleteParticipant,
+    saveSession,
+    getSession,
+    listSessions,
+    completeSessionStep,
     saveRun,
     listRuns,
     getRun,
@@ -331,6 +396,7 @@
     runsToCsv,
     pvtRunToCsv,
     questionnaireRunToCsv,
+    manualRunToCsv,
     downloadRunJson,
     downloadRunCsv,
     downloadAllJson,
