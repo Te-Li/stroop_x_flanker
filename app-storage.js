@@ -100,6 +100,10 @@
     return withNamedStore(SESSION_STORE, 'readonly', store => store.get(sessionId));
   }
 
+  async function deleteSession(sessionId) {
+    return withNamedStore(SESSION_STORE, 'readwrite', store => store.delete(sessionId));
+  }
+
   async function listSessions() {
     const rows = await withNamedStore(SESSION_STORE, 'readonly', store => store.getAll());
     return (rows || []).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
@@ -385,6 +389,7 @@
     deleteParticipant,
     saveSession,
     getSession,
+    deleteSession,
     listSessions,
     completeSessionStep,
     saveRun,
