@@ -153,14 +153,29 @@
     return `${testType}_${participantId}_${testItemId}_${Date.now()}_${randomPart}`;
   }
 
+  function unixSeconds(isoValue, fallbackMs = null) {
+    const parsed = Date.parse(isoValue || '');
+    const milliseconds = Number.isFinite(parsed) ? parsed : fallbackMs;
+    if (!Number.isFinite(milliseconds)) return '';
+    return (milliseconds / 1000).toFixed(3);
+  }
+
   async function saveRun(run) {
     const profile = run.participantProfile || await getParticipant(run.participantId);
+    const now = new Date();
+    const startedAt = run.startedAt || now.toISOString();
+    const completedAt = run.completedAt || now.toISOString();
     const record = {
       schemaVersion: 3,
       ...run,
+      startedAt,
+      completedAt,
+      startedAtUnix: run.startedAtUnix || unixSeconds(startedAt, now.getTime()),
+      completedAtUnix: run.completedAtUnix || unixSeconds(completedAt, now.getTime()),
+      runNotes: String(run.runNotes || '').trim(),
       participantProfile: profile ? normalizeParticipant(profile) : null,
       runId: run.runId || makeRunId(run.testType, run.participantId, run.testItemId),
-      savedAt: new Date().toISOString()
+      savedAt: now.toISOString()
     };
     await withStore('readwrite', store => store.put(record));
     return record;
@@ -173,6 +188,12 @@
 
   async function getRun(runId) {
     return withStore('readonly', store => store.get(runId));
+  }
+
+  async function updateRunNotes(runId, runNotes) {
+    const run = await getRun(runId);
+    if (!run) throw new Error('未找到该实验记录');
+    return saveRun({ ...run, runNotes: String(runNotes || '').trim() });
   }
 
   async function deleteRun(runId) {
@@ -189,7 +210,8 @@
 
   const CSV_HEADERS = [
     '被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注',
-    '测试项目编号', '实验条件代码', '到访运行ID', '流程步骤', '运行ID', '测试类型', '完成时间', '是否提前结束',
+    '测试项目编号', '项目备注', '实验条件代码', '到访运行ID', '流程步骤', '运行ID', '测试类型',
+    '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束',
     '总轮次序号', '任务内轮次', '任务', '试次序号', '任务内试次序号', '条件',
     '刺激', '正确反应', '实际反应', '作答方式', '正确', '超时', '反应时_ms',
     '随机等待_ms', 'PVT结果', 'PVT迟缓', 'PVT抢答', '刺激呈现时间', '作答时间'
@@ -200,7 +222,7 @@
     const identity = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || ''];
     if (run.testType === 'pvtb') {
       return (run.trials || []).map(trial => [
-        ...identity, run.testItemId, run.conditionCode || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.completedAt, run.aborted ? 1 : 0,
+        ...identity, run.testItemId, run.runNotes || '', run.conditionCode || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0,
         '', '', 'PVT-B', trial.trialIndex, '', '', '黄色计时器', '尽快响应',
         trial.response || '', trial.responseMethod || '', trial.validResponse ? 1 : 0,
         trial.outcome === 'omission' ? 1 : 0, trial.rtMs ?? '', trial.waitMs ?? '',
@@ -209,7 +231,7 @@
       ]);
     }
     return (run.trials || []).map(trial => [
-      ...identity, run.testItemId, run.conditionCode || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'Stroop-Flanker', run.completedAt, run.aborted ? 1 : 0,
+      ...identity, run.testItemId, run.runNotes || '', run.conditionCode || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'Stroop-Flanker', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0,
       trial.roundIndex, trial.taskRound, trial.type === 'stroop' ? 'Stroop' : 'Flanker',
       trial.index, trial.taskTrial, trial.congruent ? '一致' : '不一致',
       trial.type === 'stroop' ? `${trial.word}/${trial.ink}` : trial.arrows,
@@ -265,8 +287,8 @@
     const omissions = trials.filter(trial => trial.outcome === 'omission').length;
     const performanceScore = trials.length ? Math.max(0, 1 - ((lapses + falseStarts) / trials.length)) * 100 : null;
 
-    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '完成时间', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
-    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.completedAt, run.aborted ? 1 : 0, 1, 1, 'PVT-B'];
+    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
+    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0, 1, 1, 'PVT-B'];
     const trialHeaders = ['试次序号', '实际反应', '作答方式', '有效反应', '超时', '反应时_ms', '随机等待_ms', 'PVT结果', '迟缓', '抢答', '刺激呈现时间', '作答时间'];
     const trialRows = trials.map(trial => {
       const isLapse = Boolean(trial.validResponse && Number.isFinite(trial.rtMs) && trial.rtMs >= PVT_LAPSE_THRESHOLD_MS);
@@ -308,8 +330,8 @@
     const vas = responses.vas || {};
     const poms = responses.poms || { items: {} };
     const pomsItems = poms.items || {};
-    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '完成时间', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
-    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, '主观疲劳问卷', run.completedAt, run.aborted ? 1 : 0, 1, 1, 'VAS＋POMS'];
+    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
+    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, '主观疲劳问卷', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0, 1, 1, 'VAS＋POMS'];
     const responseHeaders = ['量表', '条目代码', '中文条目', '英文原词／原句', '得分', '量表最小值', '量表最大值'];
     const responseRows = [
       ['VAS', 'mentalFatigue', '你现在感觉精神疲劳的程度如何？', 'How mentally fatigued do you feel right now?', vas.mentalFatigue ?? '', 0, 100],
@@ -336,8 +358,8 @@
 
   function manualRunToCsv(run) {
     const profile = run.participantProfile || {};
-    const headers = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '步骤类型', '计划时长_分钟', '开始时间', '完成时间', '运行ID'];
-    const row = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.manualType || '', run.plannedDurationMinutes ?? '', run.startedAt || '', run.completedAt || '', run.runId];
+    const headers = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '步骤类型', '计划时长_分钟', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '运行ID'];
+    const row = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.manualType || '', run.plannedDurationMinutes ?? '', run.startedAt || '', run.completedAt || '', run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.runId];
     return [['手动确认步骤'], headers, row].map(csvRow => csvRow.map(quote).join(',')).join('\r\n');
   }
 
@@ -395,6 +417,7 @@
     saveRun,
     listRuns,
     getRun,
+    updateRunNotes,
     deleteRun,
     clearRuns,
     rowsForRun,

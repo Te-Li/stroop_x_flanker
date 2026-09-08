@@ -504,6 +504,7 @@
         </div>
         <div class="summary-grid" id="summaryGrid"></div>
         <div class="actions">
+          <button class="secondary" id="editNotes" type="button">记录备注</button>
           <button class="secondary" id="downloadJson" type="button">导出 JSON</button>
           <button class="secondary" id="downloadCsv" type="button">导出 CSV</button>
           <button class="primary" id="restartTest" type="button">返回实验平台</button>
@@ -556,7 +557,7 @@
     const initialQuery = new URLSearchParams(location.search);
     const isPractice = initialQuery.get('practice') === '1';
     const isWorkflow = initialQuery.get('workflow') === '1';
-    const workflowMeta = { sessionId: initialQuery.get('session') || '', stepId: initialQuery.get('step') || '', conditionCode: initialQuery.get('condition') || '', conditionOrder: Number(initialQuery.get('order')) || null };
+    const workflowMeta = { sessionId: initialQuery.get('session') || '', stepId: initialQuery.get('step') || '', conditionCode: initialQuery.get('condition') || '', conditionOrder: Number(initialQuery.get('order')) || null, notes: initialQuery.get('notes') || '' };
     $('participantId').value = initialQuery.get('participant') || '';
     $('testItemId').value = initialQuery.get('item') || '';
     if (isPractice) {
@@ -570,6 +571,7 @@
       $('settingsTitle').textContent = '混合任务练习设置';
       $('settingsSub').textContent = '默认各练习1轮、每轮30秒，可自行调整。';
       $('practiceBanner').classList.add('active');
+      $('editNotes').hidden = true;
       $('downloadJson').hidden = true;
       $('downloadCsv').hidden = true;
     }
@@ -1002,7 +1004,7 @@
       $('summaryGrid').innerHTML = visibleBlocks.map(roundSummaryCard).join('');
       showScreen('resultScreen');
       currentRun = {
-        testType: 'mixed', participantId: config.participantId, testItemId: config.testItemId,
+        testType: 'mixed', participantId: config.participantId, testItemId: config.testItemId, runNotes: workflowMeta.notes,
         conditionCode: workflowMeta.conditionCode, conditionOrder: workflowMeta.conditionOrder,
         sessionId: workflowMeta.sessionId, workflowStepId: workflowMeta.stepId,
         startedAt: testStartedAt, completedAt, aborted, config, rounds: blocks,
@@ -1066,6 +1068,13 @@
       return `认知负荷测试_${safeFilePart(config.participantId)}_${stamp}`;
     }
 
+    $('editNotes').addEventListener('click', async () => {
+      if (!currentRun?.runId) { alert('记录仍在保存，请稍后再试。'); return; }
+      const notes = prompt('填写本项目备注：', currentRun.runNotes || '');
+      if (notes === null) return;
+      currentRun = await ExperimentStore.updateRunNotes(currentRun.runId, notes);
+      $('completionState').textContent = '备注已保存';
+    });
     $('downloadJson').addEventListener('click', () => !isPractice && currentRun && ExperimentStore.downloadRunJson(currentRun));
 
     $('downloadCsv').addEventListener('click', () => !isPractice && currentRun && ExperimentStore.downloadRunCsv(currentRun));

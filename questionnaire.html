@@ -32,7 +32,7 @@
       <div class="results"><div class="result-head"><div><div class="eyebrow">QUESTIONNAIRE COMPLETE</div><h1>问卷已提交</h1><p class="lead" id="resultMeta"></p></div><div class="saved" id="saveStatus">正在保存…</div></div>
         <div class="metric-grid"><div class="metric"><span>精神疲劳 VAS</span><strong id="mentalResult">—</strong></div><div class="metric"><span>任务动机 VAS</span><strong id="motivationResult">—</strong></div><div class="metric"><span>POMS 疲劳总分</span><strong id="pomsSumResult">—</strong></div></div>
         <div class="result-table" id="resultTable"></div>
-        <div class="actions"><button class="secondary" id="downloadJson" type="button">导出 JSON</button><button class="secondary" id="downloadCsv" type="button">导出 CSV</button><button class="primary" id="dashboardButton" type="button">返回实验平台</button></div>
+        <div class="actions"><button class="secondary" id="editNotes" type="button">记录备注</button><button class="secondary" id="downloadJson" type="button">导出 JSON</button><button class="secondary" id="downloadCsv" type="button">导出 CSV</button><button class="primary" id="dashboardButton" type="button">返回实验平台</button></div>
       </div>
     </section>
   </main>
@@ -52,7 +52,7 @@
       {key:'tired',zh:'疲惫',en:'Tired'},
       {key:'wornOut',zh:'筋疲力尽',en:'Worn-out'}
     ];
-    const query=new URLSearchParams(location.search),participantId=query.get('participant')||'',testItemId=query.get('item')||'',isWorkflow=query.get('workflow')==='1',workflowMeta={sessionId:query.get('session')||'',stepId:query.get('step')||'',conditionCode:query.get('condition')||'',conditionOrder:Number(query.get('order'))||null};
+    const query=new URLSearchParams(location.search),participantId=query.get('participant')||'',testItemId=query.get('item')||'',isWorkflow=query.get('workflow')==='1',workflowMeta={sessionId:query.get('session')||'',stepId:query.get('step')||'',conditionCode:query.get('condition')||'',conditionOrder:Number(query.get('order'))||null,notes:query.get('notes')||''};
     const touchedVas=new Set();let currentRun=null;const startedAt=new Date().toISOString();
     $('participantText').textContent=participantId||'未指定';$('itemText').textContent=testItemId||'未指定';
 
@@ -80,7 +80,7 @@
       event.preventDefault();let responses;
       try{responses=collectResponses()}catch(error){$('formError').textContent=error.message;return}
       $('submitButton').disabled=true;const completedAt=new Date().toISOString();
-      currentRun={testType:'questionnaire',participantId,testItemId,conditionCode:workflowMeta.conditionCode,conditionOrder:workflowMeta.conditionOrder,sessionId:workflowMeta.sessionId,workflowStepId:workflowMeta.stepId,startedAt,completedAt,aborted:false,config:{vasRange:[0,100],vasStep:1,pomsRange:[1,5]},responses,summary:{...responses,durationSeconds:Math.round((new Date(completedAt)-new Date(startedAt))/1000)}};
+      currentRun={testType:'questionnaire',participantId,testItemId,runNotes:workflowMeta.notes,conditionCode:workflowMeta.conditionCode,conditionOrder:workflowMeta.conditionOrder,sessionId:workflowMeta.sessionId,workflowStepId:workflowMeta.stepId,startedAt,completedAt,aborted:false,config:{vasRange:[0,100],vasStep:1,pomsRange:[1,5]},responses,summary:{...responses,durationSeconds:Math.round((new Date(completedAt)-new Date(startedAt))/1000)}};
       renderResult();document.querySelectorAll('.screen').forEach(screen=>screen.classList.toggle('active',screen.id==='resultScreen'));window.scrollTo({top:0,behavior:'instant'});
       try{currentRun=await ExperimentStore.saveRun(currentRun);if(isWorkflow){ExperimentStore.downloadRunCsv(currentRun);await ExperimentStore.completeSessionStep(workflowMeta.sessionId,workflowMeta.stepId,currentRun.runId);$('saveStatus').textContent='已保存 · CSV下载已触发';$('dashboardButton').textContent='继续固定实验流程'}else $('saveStatus').textContent='已保存到本机实验记录'}catch(error){$('saveStatus').textContent='自动保存失败，请立即导出';alert(`自动保存失败：${error.message}`)}
     });
@@ -93,6 +93,7 @@
     }
     $('downloadJson').addEventListener('click',()=>currentRun&&ExperimentStore.downloadRunJson(currentRun));
     $('downloadCsv').addEventListener('click',()=>currentRun&&ExperimentStore.downloadRunCsv(currentRun));
+    $('editNotes').addEventListener('click',async()=>{if(!currentRun?.runId){alert('记录仍在保存，请稍后再试。');return}const notes=prompt('填写本项目备注：',currentRun.runNotes||'');if(notes===null)return;currentRun=await ExperimentStore.updateRunNotes(currentRun.runId,notes);$('saveStatus').textContent='备注已保存'});
     $('dashboardButton').addEventListener('click',()=>location.href=isWorkflow?`workflow.html?session=${encodeURIComponent(workflowMeta.sessionId)}`:'index.html');
   </script>
 </body>
