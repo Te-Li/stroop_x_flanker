@@ -358,8 +358,8 @@
 
   function manualRunToCsv(run) {
     const profile = run.participantProfile || {};
-    const headers = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '步骤类型', '计划时长_分钟', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '运行ID'];
-    const row = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.manualType || '', run.plannedDurationMinutes ?? '', run.startedAt || '', run.completedAt || '', run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.runId];
+    const headers = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '步骤类型', '计划时长_分钟', '最低时长_分钟', '实际时长_秒', '目标呼吸次数_每分钟', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '运行ID'];
+    const row = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.manualType || '', run.plannedDurationMinutes ?? '', run.minimumDurationMinutes ?? '', run.actualDurationSeconds ?? '', run.breathRatePerMinute ?? '', run.startedAt || '', run.completedAt || '', run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.runId];
     return [['手动确认步骤'], headers, row].map(csvRow => csvRow.map(quote).join(',')).join('\r\n');
   }
 

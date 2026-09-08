@@ -225,7 +225,7 @@
       if (!code) { $('visitStatus').textContent = '请输入第一个实验条件代码。'; $('conditionCode').focus(); return; }
       try {
         const now = new Date().toISOString();
-        const session = await ExperimentStore.saveSession({ participantId: profile.participantId, status: 'active', startedAt: now, currentStepIndex: 0, completedSteps: [], conditionCodes: [code, ''] });
+        const session = await ExperimentStore.saveSession({ participantId: profile.participantId, status: 'active', workflowVersion: 2, startedAt: now, currentStepIndex: 0, completedSteps: [], conditionCodes: [code, ''] });
         cachedSessions.unshift(session);
         location.href = `workflow.html?session=${encodeURIComponent(session.sessionId)}`;
       } catch (error) { $('visitStatus').textContent = `创建到访失败：${error.message}`; }
@@ -245,7 +245,10 @@
         return `平均1/RT ${speed===null?'—':speed.toFixed(3)} 1/s · 迟缓 ${lapses}（${lapseRate}）`;
       }
       if (run.testType === 'questionnaire') return `精神疲劳VAS ${run.responses?.vas?.mentalFatigue ?? '—'} · POMS ${run.responses?.poms?.sum ?? '—'}/20`;
-      if (run.testType === 'manual') return `${run.manualType === 'space_interaction' ? '空间交互' : '生理测量'} · ${run.plannedDurationMinutes ?? '—'}分钟 · 手动确认`;
+      if (run.testType === 'manual') {
+        if (run.manualType === 'breathing_calibration') return `呼吸校准 · ${run.breathRatePerMinute || 8}次/分钟 · ${Math.round(run.actualDurationSeconds || 0)}秒`;
+        return `${run.manualType === 'space_interaction' ? '空间交互' : '生理测量'} · ${run.plannedDurationMinutes ?? '—'}分钟`;
+      }
       return `正确率 ${((run.summary.overall.accuracy || 0) * 100).toFixed(1)}% · ${run.trials.length}题`;
     }
 
