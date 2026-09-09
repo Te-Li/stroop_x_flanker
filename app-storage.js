@@ -56,6 +56,7 @@
       age: profile.age === '' || profile.age == null ? null : Number(profile.age),
       handedness: String(profile.handedness || '').trim(),
       education: String(profile.education || '').trim(),
+      major: String(profile.major || '').trim(),
       notes: String(profile.notes || '').trim()
     };
   }
@@ -209,7 +210,7 @@
   }
 
   const CSV_HEADERS = [
-    '被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注',
+    '被试编号', '性别', '年龄', '惯用手', '教育程度', '专业', '被试备注',
     '测试项目编号', '项目备注', '实验条件代码', '到访运行ID', '流程步骤', '运行ID', '测试类型',
     '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束',
     '总轮次序号', '任务内轮次', '任务', '试次序号', '任务内试次序号', '条件',
@@ -219,7 +220,7 @@
 
   function rowsForRun(run) {
     const profile = run.participantProfile || {};
-    const identity = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || ''];
+    const identity = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.major || '', profile.notes || ''];
     if (run.testType === 'pvtb') {
       return (run.trials || []).map(trial => [
         ...identity, run.testItemId, run.runNotes || '', run.conditionCode || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0,
@@ -287,8 +288,8 @@
     const omissions = trials.filter(trial => trial.outcome === 'omission').length;
     const performanceScore = trials.length ? Math.max(0, 1 - ((lapses + falseStarts) / trials.length)) * 100 : null;
 
-    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
-    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0, 1, 1, 'PVT-B'];
+    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '专业', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
+    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.major || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, 'PVT-B', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0, 1, 1, 'PVT-B'];
     const trialHeaders = ['试次序号', '实际反应', '作答方式', '有效反应', '超时', '反应时_ms', '随机等待_ms', 'PVT结果', '迟缓', '抢答', '刺激呈现时间', '作答时间'];
     const trialRows = trials.map(trial => {
       const isLapse = Boolean(trial.validResponse && Number.isFinite(trial.rtMs) && trial.rtMs >= PVT_LAPSE_THRESHOLD_MS);
@@ -330,8 +331,8 @@
     const vas = responses.vas || {};
     const poms = responses.poms || { items: {} };
     const pomsItems = poms.items || {};
-    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
-    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, '主观疲劳问卷', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0, 1, 1, 'VAS＋POMS'];
+    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '专业', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
+    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.major || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, '主观疲劳问卷', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0, 1, 1, 'VAS＋POMS'];
     const responseHeaders = ['量表', '条目代码', '中文条目', '英文原词／原句', '得分', '量表最小值', '量表最大值'];
     const responseRows = [
       ['VAS', 'mentalFatigue', '你现在感觉精神疲劳的程度如何？', 'How mentally fatigued do you feel right now?', vas.mentalFatigue ?? '', 0, 100],
@@ -358,8 +359,8 @@
 
   function manualRunToCsv(run) {
     const profile = run.participantProfile || {};
-    const headers = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '步骤类型', '计划时长_分钟', '最低时长_分钟', '实际时长_秒', '目标呼吸次数_每分钟', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '运行ID'];
-    const row = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.manualType || '', run.plannedDurationMinutes ?? '', run.minimumDurationMinutes ?? '', run.actualDurationSeconds ?? '', run.breathRatePerMinute ?? '', run.startedAt || '', run.completedAt || '', run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.runId];
+    const headers = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '专业', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '步骤类型', '计划时长_分钟', '最低时长_分钟', '实际时长_秒', '目标呼吸次数_每分钟', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '运行ID'];
+    const row = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.major || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.manualType || '', run.plannedDurationMinutes ?? '', run.minimumDurationMinutes ?? '', run.actualDurationSeconds ?? '', run.breathRatePerMinute ?? '', run.startedAt || '', run.completedAt || '', run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.runId];
     return [['手动确认步骤'], headers, row].map(csvRow => csvRow.map(quote).join(',')).join('\r\n');
   }
 
