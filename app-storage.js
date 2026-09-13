@@ -331,9 +331,13 @@
     const vas = responses.vas || {};
     const poms = responses.poms || { items: {} };
     const pomsItems = poms.items || {};
+    const restoration = responses.restoration || null;
+    const recovery = restoration?.recovery || {};
+    const source = restoration?.sourceAttribution || {};
+    const restorationIndices = restoration?.indices || {};
     const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '专业', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束', '总轮次序号', '任务内轮次', '任务'];
     const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.major || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, '主观疲劳问卷', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0, 1, 1, 'VAS＋POMS'];
-    const responseHeaders = ['量表', '条目代码', '中文条目', '英文原词／原句', '得分', '量表最小值', '量表最大值'];
+    const responseHeaders = ['量表', '条目代码', '中文条目', '英文原词／原句', '得分／回答', '量表最小值', '量表最大值'];
     const responseRows = [
       ['VAS', 'mentalFatigue', '你现在感觉精神疲劳的程度如何？', 'How mentally fatigued do you feel right now?', vas.mentalFatigue ?? '', 0, 100],
       ['VAS', 'motivation', '你完成下一个任务的动机有多强？', 'How motivated are you to perform the next task?', vas.motivation ?? '', 0, 100],
@@ -344,11 +348,32 @@
       ['POMS疲劳', 'tired', '疲惫', 'Tired', pomsItems.tired ?? '', 1, 5],
       ['POMS疲劳', 'wornOut', '筋疲力尽', 'Worn-out', pomsItems.wornOut ?? '', 1, 5]
     ];
+    if (restoration) responseRows.push(
+      ['恢复感VAS', 'relaxation', '在刚才的体验过程中，您感到多大程度的放松？', 'How relaxed did you feel during the experience?', recovery.relaxation ?? '', 0, 100],
+      ['恢复感VAS', 'mentalFatigueRelief', '与刚才体验开始前相比，您现在的精神疲劳减轻了多少？', 'How much has your mental fatigue decreased compared with before the experience?', recovery.mentalFatigueRelief ?? '', 0, 100],
+      ['恢复感VAS', 'stressRelief', '与刚才体验开始前相比，您现在的心理压力减轻了多少？', 'How much has your psychological stress decreased compared with before the experience?', recovery.stressRelief ?? '', 0, 100],
+      ['恢复感VAS', 'taskDetachment', '在刚才的体验过程中，您在多大程度上暂时不再想着前序任务的要求？', 'To what extent did you mentally detach from the preceding task demands?', recovery.taskDetachment ?? '', 0, 100],
+      ['恢复感VAS', 'attentionRecovery', '经过刚才的体验，您感觉自己的注意力或精神精力恢复了多少？', 'How much did your attention or mental energy recover after the experience?', recovery.attentionRecovery ?? '', 0, 100],
+      ['来源归因VAS', 'sourceSpace', '刚才体验中的空间环境与空间特征', 'Spatial environment and spatial features', source.sourceSpace ?? '', 0, 100],
+      ['来源归因VAS', 'sourceInteraction', '刚才进行的交互活动或体验内容', 'Interaction activity or experiential content', source.sourceInteraction ?? '', 0, 100],
+      ['来源归因VAS', 'sourceTaskPause', '仅仅因为暂停了前序认知任务或获得了休息', 'Simply pausing the preceding cognitive task or resting', source.sourceTaskPause ?? '', 0, 100],
+      ['来源归因VAS', 'sourceTime', '随着时间经过而产生的自然恢复', 'Natural recovery with the passage of time', source.sourceTime ?? '', 0, 100],
+      ['来源归因VAS', 'sourceExpectation', '对实验效果的期待或自我暗示', 'Expectation of an effect or self-suggestion', source.sourceExpectation ?? '', 0, 100],
+      ['来源归因VAS', 'sourceOther', '其他因素', 'Other factors', source.sourceOther ?? '', 0, 100],
+      ['开放回答', 'sourceOtherDescription', '其他影响因素说明', '', source.otherDescription || '', '', '']
+    );
     const summaryRows = [
       ['POMS疲劳总分', poms.sum ?? '', '4个条目相加，范围4–20'],
       ['POMS疲劳平均分', metric(poms.mean), '4个条目平均，范围1–5'],
       ['填写用时_秒', run.summary?.durationSeconds ?? '', '从问卷页面载入到提交']
     ];
+    if (restoration) summaryRows.push(
+      ['主观恢复指数', metric(restorationIndices.recoveryMean), '5项恢复感VAS的平均分，范围0–100'],
+      ['空间来源得分', restorationIndices.spaceSourceScore ?? '', '空间环境与空间特征的来源贡献评分'],
+      ['交互来源得分', restorationIndices.interactionSourceScore ?? '', '交互活动或体验内容的来源贡献评分'],
+      ['非空间因素平均分', metric(restorationIndices.nonSpaceMean), '暂停任务／休息、时间经过、期待／自我暗示三项平均分'],
+      ['空间特异性指数', metric(restorationIndices.spaceSpecificity), '空间来源得分－非空间因素平均分']
+    );
     const csvRows = [
       ['测试信息'], infoHeaders, infoRow, [],
       ['问卷原始作答'], responseHeaders, ...responseRows, [],
