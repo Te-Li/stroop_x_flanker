@@ -325,6 +325,43 @@
     return csvRows.map(row => row.map(quote).join(',')).join('\r\n');
   }
 
+  function tldbRunToCsv(run) {
+    const profile = run.participantProfile || {};
+    const trials = run.trials || [];
+    const adaptations = run.adaptationLog || [];
+    const summary = run.summary || {};
+    const infoHeaders = ['被试编号', '性别', '年龄', '惯用手', '教育程度', '专业', '被试备注', '测试项目编号', '项目备注', '实验条件代码', '条件顺序', '到访运行ID', '流程步骤', '运行ID', '测试类型', '开始时间_UTC', '结束时间_UTC', '开始Unix秒', '结束Unix秒', '是否提前结束', '任务时长_分钟', '初始作答时限_ms', '字母权重', '数字权重', '每块双任务试次数'];
+    const infoRow = [run.participantId, profile.sex || '', profile.age ?? '', profile.handedness || '', profile.education || '', profile.major || '', profile.notes || '', run.testItemId, run.runNotes || '', run.conditionCode || '', run.conditionOrder || '', run.sessionId || '', run.workflowStepId || '', run.runId, '实时自适应TLDB', run.startedAt, run.completedAt, run.startedAtUnix || unixSeconds(run.startedAt), run.completedAtUnix || unixSeconds(run.completedAt), run.aborted ? 1 : 0, run.config?.durationMinutes ?? '', run.config?.initialWindowMs ?? '', run.config?.letterWeight ?? '', run.config?.digitWeight ?? '', run.config?.blockPairs ?? ''];
+    const trialHeaders = ['刺激序号', '双任务试次', '自适应块', '子任务', '刺激', '正确判断', '正确按键', '实际判断', '实际按键', '正确', '超时', '反应时_ms', '本刺激作答时限_ms', '刺激呈现时间_UTC', '作答时间_UTC'];
+    const trialRows = trials.map(trial => [trial.stimulusIndex, trial.pairIndex, trial.blockIndex, trial.task === 'letter' ? '字母1-back' : '数字奇偶', trial.stimulus, trial.correctResponse, trial.correctKey, trial.response || '', trial.responseKey || '', trial.correct ? 1 : 0, trial.timedOut ? 1 : 0, trial.rtMs ?? '', trial.windowMs, trial.presentedAt || '', trial.answeredAt || '']);
+    const adaptationHeaders = ['自适应块', '字母正确率', '数字正确率', '加权正确率', '原作答时限_ms', '调整方向', '请求调整量_ms', '实际调整量_ms', '下一块作答时限_ms', '块完成时间_UTC'];
+    const adaptationRows = adaptations.map(row => [row.blockIndex, metric(row.letterAccuracy), metric(row.digitAccuracy), metric(row.weightedAccuracy), row.previousWindowMs, row.direction, row.requestedAdjustmentMs, row.actualAdjustmentMs, row.nextWindowMs, row.completedAt || '']);
+    const summaryRows = [
+      ['刺激记录数', summary.stimulusCount ?? '', '仅包含任务截止前已完成或已作答的刺激'],
+      ['完成双任务试次数', summary.completedPairs ?? '', '完成的字母与数字配对数'],
+      ['完成自适应块数', summary.completedBlocks ?? '', '每块10个双任务试次'],
+      ['加权正确率_%', summary.weightedAccuracy == null ? '' : metric(summary.weightedAccuracy * 100), '字母正确率×65%＋数字正确率×35%'],
+      ['字母正确率_%', summary.letterAccuracy == null ? '' : metric(summary.letterAccuracy * 100), '字母1-back'],
+      ['数字正确率_%', summary.digitAccuracy == null ? '' : metric(summary.digitAccuracy * 100), '数字奇偶判断'],
+      ['正确反应平均时_ms', metric(summary.meanCorrectRtMs), '仅纳入正确且有反应的刺激'],
+      ['超时数', summary.timeouts ?? '', '作答时限内未响应'],
+      ['初始作答时限_ms', summary.initialWindowMs ?? '', '任务开始时'],
+      ['最终作答时限_ms', summary.finalWindowMs ?? '', '任务结束时'],
+      ['达到的最短作答时限_ms', summary.minimumWindowReachedMs ?? '', '所有已完成块'],
+      ['达到的最长作答时限_ms', summary.maximumWindowReachedMs ?? '', '所有已完成块'],
+      ['加快次数', summary.speedUps ?? '', '块加权正确率≥90%'],
+      ['减慢次数', summary.slowDowns ?? '', '块加权正确率≤80%'],
+      ['保持次数', summary.holds ?? '', '块加权正确率介于80%和90%之间']
+    ];
+    const csvRows = [
+      ['测试信息'], infoHeaders, infoRow, [],
+      ['逐刺激数据'], trialHeaders, ...trialRows, [],
+      ['自适应调整记录'], adaptationHeaders, ...adaptationRows, [],
+      ['统计汇总'], ['指标', '数值', '说明'], ...summaryRows
+    ];
+    return csvRows.map(row => row.map(quote).join(',')).join('\r\n');
+  }
+
   function questionnaireRunToCsv(run) {
     const profile = run.participantProfile || {};
     const responses = run.responses || {};
@@ -412,7 +449,7 @@
 
   function downloadRunCsv(run) {
     const name = `${safeFilePart(run.participantId)}_${safeFilePart(run.testItemId)}_${run.testType}.csv`;
-    const content = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : run.testType === 'manual' ? manualRunToCsv(run) : runsToCsv([run]);
+    const content = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'tldb' ? tldbRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : run.testType === 'manual' ? manualRunToCsv(run) : runsToCsv([run]);
     download(name, content, 'text/csv;charset=utf-8');
   }
 
@@ -423,8 +460,8 @@
 
   function downloadAllCsv(runs) {
     const content = runs.map((run, index) => {
-      const runCsv = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : run.testType === 'manual' ? manualRunToCsv(run) : runsToCsv([run]);
-      const typeName = run.testType === 'pvtb' ? 'PVT-B' : run.testType === 'questionnaire' ? '主观疲劳问卷' : run.testType === 'manual' ? '手动确认步骤' : 'Stroop-Flanker';
+      const runCsv = run.testType === 'pvtb' ? pvtRunToCsv(run) : run.testType === 'tldb' ? tldbRunToCsv(run) : run.testType === 'questionnaire' ? questionnaireRunToCsv(run) : run.testType === 'manual' ? manualRunToCsv(run) : runsToCsv([run]);
+      const typeName = run.testType === 'pvtb' ? 'PVT-B' : run.testType === 'tldb' ? '实时自适应TLDB' : run.testType === 'questionnaire' ? '主观疲劳问卷' : run.testType === 'manual' ? '手动确认步骤' : 'Stroop-Flanker';
       return `${['实验记录', index + 1, run.participantId, run.testItemId, typeName].map(quote).join(',')}\r\n${runCsv}`;
     }).join('\r\n\r\n');
     download(`全部实验结果_${new Date().toISOString().slice(0, 10)}.csv`, content, 'text/csv;charset=utf-8');
@@ -449,6 +486,7 @@
     rowsForRun,
     runsToCsv,
     pvtRunToCsv,
+    tldbRunToCsv,
     questionnaireRunToCsv,
     manualRunToCsv,
     downloadRunJson,

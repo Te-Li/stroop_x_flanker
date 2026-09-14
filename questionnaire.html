@@ -71,8 +71,8 @@
       {key:'sourceExpectation',zh:'对实验效果的期待或自我暗示',en:'Expectation of an effect or self-suggestion',low:'完全没有影响',high:'影响非常大'},
       {key:'sourceOther',zh:'其他因素',en:'Other factors',low:'完全没有影响',high:'影响非常大'}
     ];
-    const query=new URLSearchParams(location.search),participantId=query.get('participant')||'',testItemId=query.get('item')||'',isWorkflow=query.get('workflow')==='1',workflowMeta={sessionId:query.get('session')||'',stepId:query.get('step')||'',conditionCode:query.get('condition')||'',conditionOrder:Number(query.get('order'))||null,notes:query.get('notes')||''};
-    const isFinalQuestionnaire=isWorkflow&&/^C\d+_q3$/.test(workflowMeta.stepId),activeVasItems=isFinalQuestionnaire?[...VAS_ITEMS,...RECOVERY_ITEMS,...SOURCE_ITEMS]:VAS_ITEMS;
+    const query=new URLSearchParams(location.search),participantId=query.get('participant')||'',testItemId=query.get('item')||'',isWorkflow=query.get('workflow')==='1',isDebug=query.get('debug')==='1',debugReturnStep=query.get('returnStep')||'0',workflowMeta={sessionId:query.get('session')||'',stepId:query.get('step')||'',conditionCode:query.get('condition')||'',conditionOrder:Number(query.get('order'))||null,notes:query.get('notes')||'',redo:query.get('redo')==='1'};
+    const isFinalQuestionnaire=(isWorkflow||isDebug)&&/^C\d+_q4$/.test(workflowMeta.stepId),activeVasItems=isFinalQuestionnaire?[...VAS_ITEMS,...RECOVERY_ITEMS,...SOURCE_ITEMS]:VAS_ITEMS;
     const touchedVas=new Set();let currentRun=null;const startedAt=new Date().toISOString();
     $('participantText').textContent=participantId||'未指定';$('itemText').textContent=testItemId||'未指定';
     if(isFinalQuestionnaire){$('restorationModule').hidden=false;document.querySelector('.header .lead').textContent='答案没有对错。请根据此刻状态以及刚才体验过程中的真实感受作答。'}
@@ -113,7 +113,8 @@
       $('submitButton').disabled=true;const completedAt=new Date().toISOString();
       currentRun={testType:'questionnaire',participantId,testItemId,runNotes:workflowMeta.notes,conditionCode:workflowMeta.conditionCode,conditionOrder:workflowMeta.conditionOrder,sessionId:workflowMeta.sessionId,workflowStepId:workflowMeta.stepId,startedAt,completedAt,aborted:false,config:{vasRange:[0,100],vasStep:1,pomsRange:[1,5],includesRestorationModule:isFinalQuestionnaire},responses,summary:{...responses,durationSeconds:Math.round((new Date(completedAt)-new Date(startedAt))/1000)}};
       renderResult();document.querySelectorAll('.screen').forEach(screen=>screen.classList.toggle('active',screen.id==='resultScreen'));window.scrollTo({top:0,behavior:'instant'});
-      try{currentRun=await ExperimentStore.saveRun(currentRun);if(isWorkflow){ExperimentStore.downloadRunCsv(currentRun);await ExperimentStore.completeSessionStep(workflowMeta.sessionId,workflowMeta.stepId,currentRun.runId);$('saveStatus').textContent='已保存 · CSV下载已触发';$('dashboardButton').textContent='继续固定实验流程'}else $('saveStatus').textContent='已保存到本机实验记录'}catch(error){$('saveStatus').textContent='自动保存失败，请立即导出';alert(`自动保存失败：${error.message}`)}
+      if(isDebug){$('saveStatus').textContent='调试模式 · 未保存';$('dashboardButton').textContent='返回流程调试';return}
+      try{currentRun=await ExperimentStore.saveRun(currentRun);if(isWorkflow){ExperimentStore.downloadRunCsv(currentRun);if(!workflowMeta.redo)await ExperimentStore.completeSessionStep(workflowMeta.sessionId,workflowMeta.stepId,currentRun.runId);$('saveStatus').textContent='已保存 · CSV下载已触发';$('dashboardButton').textContent='继续固定实验流程'}else $('saveStatus').textContent='已保存到本机实验记录'}catch(error){$('saveStatus').textContent='自动保存失败，请立即导出';alert(`自动保存失败：${error.message}`)}
     });
 
     function renderResult(){
@@ -126,7 +127,7 @@
     $('downloadJson').addEventListener('click',()=>currentRun&&ExperimentStore.downloadRunJson(currentRun));
     $('downloadCsv').addEventListener('click',()=>currentRun&&ExperimentStore.downloadRunCsv(currentRun));
     $('editNotes').addEventListener('click',async()=>{if(!currentRun?.runId){alert('记录仍在保存，请稍后再试。');return}const notes=prompt('填写本项目备注：',currentRun.runNotes||'');if(notes===null)return;currentRun=await ExperimentStore.updateRunNotes(currentRun.runId,notes);$('saveStatus').textContent='备注已保存'});
-    $('dashboardButton').addEventListener('click',()=>location.href=isWorkflow?`workflow.html?session=${encodeURIComponent(workflowMeta.sessionId)}`:'index.html');
+    $('dashboardButton').addEventListener('click',()=>location.href=isDebug?`workflow.html?debug=1&step=${encodeURIComponent(debugReturnStep)}`:isWorkflow?`workflow.html?session=${encodeURIComponent(workflowMeta.sessionId)}`:'index.html');
   </script>
 </body>
 </html>
